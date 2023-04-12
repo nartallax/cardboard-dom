@@ -3,9 +3,10 @@ import {MaybeRBoxed} from "src/tag"
 
 /** Cached renderer for list of elements
  * Won't re-render an element if already has one for the value */
-export function renderArray<T, K, E extends Element>(src: WBox<T[]>, getKey: (value: T) => K, render: (value: WBox<T>) => E): RBox<E[]>
-export function renderArray<T, K, E extends Element>(src: RBox<T[]>, getKey: (value: T) => K, render: (value: RBox<T>) => E): RBox<E[]>
-export function renderArray<T, K, E extends Element>(src: MaybeRBoxed<readonly T[]>, getKey: (value: T) => K, render: (value: MaybeRBoxed<T>) => E): E[]
+export function renderArray<T, K, E extends Element>(src: WBox<readonly T[]>, getKey: (value: T) => K, render: (value: WBox<T>) => E): RBox<E[]>
+export function renderArray<T, K, E extends Element>(src: RBox<readonly T[]>, getKey: (value: T) => K, render: (value: RBox<T>) => E): RBox<E[]>
+export function renderArray<T, K, E extends Element>(src: MaybeRBoxed<readonly T[]>, getKey: (value: T) => K, render: (value: MaybeRBoxed<T>) => E): MaybeRBoxed<E[]>
+export function renderArray<T, K, E extends Element>(src: readonly T[], getKey: (value: T) => K, render: (value: T) => E): E[]
 export function renderArray<T, K, E extends Element>(src: MaybeRBoxed<readonly T[]> | WBox<T[]>, getKey: (value: T) => K, render: (value: WBox<T> | T) => E): E[] | RBox<E[]> {
 	if(Array.isArray(src)){
 		return src.map(el => render(el))
