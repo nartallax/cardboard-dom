@@ -33,7 +33,7 @@ type Attributes = {
 }
 
 type StyleValues = {
-	readonly [k in keyof WritableStyles]?: MRBox<CSSStyleDeclaration[k]>
+	readonly [k in keyof WritableStyles]?: MRBox<CSSStyleDeclaration[k] | undefined>
 }
 
 type TagDescription<K extends string = string, ThisType = unknown> = EventHandlers<ThisType> & CustomEventHandlers<ThisType> & {
@@ -175,11 +175,18 @@ export function tag<K extends keyof HTMLElementTagNameMap = "div">(a?: HTMLTagDe
 			const styleValue = description.style[k]
 			if(isRBox(styleValue)){
 				binder = watch(binder, tagBase, styleValue, v => {
-					tagBase.style[k] = v as string // ew
+					if(v === undefined){
+						tagBase.style.removeProperty(k)
+					} else {
+						tagBase.style[k] = v as string // ew
+					}
 				})
 			}
 			// ewwwww.
-			tagBase.style[k] = unbox(styleValue) + ""
+			const value = unbox(styleValue)
+			if(value !== undefined){
+				tagBase.style[k] = value + ""
+			}
 		}
 	}
 
