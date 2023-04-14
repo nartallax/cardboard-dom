@@ -73,7 +73,16 @@ defineTestCase("local storage box", async() => {
 })
 
 defineTestCase("control wrapping", async() => {
-	const Label = defineControl<{text: string}>(props => {
+	const defaults = {
+		defaultOptProp: "uwu"
+	}
+	const Label = defineControl<{text: string, optProp?: number, defaultOptProp?: string}, typeof defaults>(defaults, props => {
+		if(Math.random() < 0){
+			console.log(props.defaultOptProp())
+		}
+		if(props.optProp?.() === 3){
+			console.log(props.optProp?.())
+		}
 		return tag({class: "test-label"}, [props.text])
 	})
 
