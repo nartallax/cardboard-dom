@@ -1,4 +1,5 @@
 import {WBox, box} from "@nartallax/cardboard"
+import {defineControl} from "src/control"
 import {localStorageBox} from "src/local_storage_box"
 import {tag} from "src/tag"
 
@@ -69,4 +70,36 @@ defineTestCase("local storage box", async() => {
 	} finally {
 		localStorage.removeItem(name)
 	}
+})
+
+defineTestCase("control wrapping", async() => {
+	const Label = defineControl<{text: string}>(props => {
+		return tag({class: "test-label"}, [props.text])
+	})
+
+	const labelA = Label({text: "uwu"})
+	const b = box("owo")
+	const labelB = Label({text: b})
+
+	await sleep(250)
+
+	document.body.appendChild(labelA)
+	document.body.appendChild(labelB)
+
+	if(labelA.textContent !== "uwu"){
+		throw new Error("No uwu")
+	}
+
+	if(labelB.textContent !== "owo"){
+		throw new Error("No owo")
+	}
+
+	b("ayaya")
+	await sleep(250)
+	if((labelB as HTMLElement).textContent !== "ayaya"){
+		throw new Error("No ayaya (" + labelB.textContent + ")")
+	}
+
+	labelA.remove()
+	labelB.remove()
 })

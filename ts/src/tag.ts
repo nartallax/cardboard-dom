@@ -1,9 +1,6 @@
 import {Binder, getBinder} from "src/binder"
-import {isRBox, RBox, unbox} from "@nartallax/cardboard"
+import {isConstBox, isRBox, MRBox, unbox} from "@nartallax/cardboard"
 import {ClassNameParts, makeClassname} from "src/classname"
-
-
-export type MaybeRBoxed<T> = T | RBox<T>
 
 type IfEquals<X, Y, A, B> =
     (<T>() => T extends X ? 1 : 2) extends
@@ -32,11 +29,11 @@ type CustomEventHandlers<ThisType = unknown> = {
 }
 
 type Attributes = {
-	readonly [attrName: string]: MaybeRBoxed<string | number | boolean>
+	readonly [attrName: string]: MRBox<string | number | boolean>
 }
 
 type StyleValues = {
-	readonly [k in keyof WritableStyles]?: MaybeRBoxed<CSSStyleDeclaration[k]>
+	readonly [k in keyof WritableStyles]?: MRBox<CSSStyleDeclaration[k]>
 }
 
 type TagDescription<K extends string = string, ThisType = unknown> = EventHandlers<ThisType> & CustomEventHandlers<ThisType> & {
@@ -54,8 +51,8 @@ export type HTMLTagDescription<K extends keyof HTMLElementTagNameMap = keyof HTM
 export type SVGTagDescription<K extends keyof SVGElementTagNameMap = keyof SVGElementTagNameMap> = TagDescription<K, SVGElementTagNameMap[K]>
 
 type Maybe<E> = E | null | undefined
-type ChildArray<E = unknown> = MaybeRBoxed<Maybe<E>[]>
-type HTMLChild = HTMLElement | MaybeRBoxed<string | number>
+type ChildArray<E = unknown> = MRBox<Maybe<E>[]>
+type HTMLChild = HTMLElement | MRBox<string | number>
 type HTMLChildArray = ChildArray<HTMLChild>
 type SVGChildArray = ChildArray<SVGElement>
 
@@ -86,7 +83,7 @@ function populateTag<K extends string, T, E>(tagBase: Element, description: TagD
 	if("text" in description){
 		const v = description.text!
 		if(isRBox(v)){
-			(binder ||= getBinder(tagBase)).watch(v, text => {
+			binder = watch(binder, tagBase, v, text => {
 				tagBase.textContent = text + ""
 			})
 		}
@@ -97,7 +94,7 @@ function populateTag<K extends string, T, E>(tagBase: Element, description: TagD
 		for(const k in description.attrs){
 			const v = description.attrs[k]!
 			if(isRBox(v)){
-				(binder ||= getBinder(tagBase)).watch<string | number | boolean>(v, v => {
+				binder = watch(binder, tagBase, v, v => {
 					if(v === false){
 						tagBase.removeAttribute(k)
 					} else if(v === true){
@@ -152,7 +149,7 @@ function populateTag<K extends string, T, E>(tagBase: Element, description: TagD
 		}
 
 		if(isRBox(children)){
-			(binder ||= getBinder(tagBase)).watch(children, children => {
+			binder = watch(binder, tagBase, children, children => {
 				setChildren(children)
 			})
 		}
@@ -177,7 +174,7 @@ export function tag<K extends keyof HTMLElementTagNameMap = "div">(a?: HTMLTagDe
 		for(const k in description.style){
 			const styleValue = description.style[k]
 			if(isRBox(styleValue)){
-				(binder ||= getBinder(tagBase)).watch(styleValue, v => {
+				binder = watch(binder, tagBase, styleValue, v => {
 					tagBase.style[k] = v as string // ew
 				})
 			}
@@ -192,7 +189,7 @@ export function tag<K extends keyof HTMLElementTagNameMap = "div">(a?: HTMLTagDe
 function renderHTMLChild(child: Exclude<HTMLChild, Node>): Node | null {
 	if(isRBox(child)){
 		const node = document.createTextNode(child() + "")
-		getBinder(node).watch(child, value => node.textContent = value + "")
+		watch(null, node, child, value => node.textContent = value + "")
 		return node
 	}
 	if(typeof(child) === "string" || typeof(child) === "number"){
@@ -245,13 +242,25 @@ function updateChildren(parent: Element, newChildren: readonly Node[]): void {
 /** This function is a way to subscribe to arbitrary boxes without making memory leak
  * Subscriptions will only be called when the component is in the DOM
  * (with the only exception being first immediate call, which will happen regardless of mount state) */
-export function whileMounted<T>(el: Element, box: T | RBox<T>, handler: (value: T) => void, opts: {dontCallImmediately?: boolean} = {}): void {
-	const binder = getBinder(el)
-	if(opts.dontCallImmediately){
-		if(isRBox(box)){
-			binder.watch(box, handler)
-		}
-	} else {
-		binder.watchAndRun(box, handler)
+export function whileMounted<T>(el: Element, box: MRBox<T>, handler: (value: T) => void, opts: {dontCallImmediately?: boolean} = {}): void {
+	(opts.dontCallImmediately ? watch : watchAndRun)(null, el, box, handler)
+}
+
+function watch<T>(binder: Binder | null, node: Node, value: MRBox<T>, handler: (value: T) => void): Binder | null {
+	if(!isRBox(value) || isConstBox(value)){
+		return binder
 	}
+
+	(binder ||= getBinder(node)).watch(value, handler)
+	return binder
+}
+
+function watchAndRun<T>(binder: Binder | null, node: Node, value: MRBox<T>, handler: (value: T) => void): Binder | null {
+	if(!isRBox(value) || isConstBox(value)){
+		handler(unbox(value))
+		return binder
+	}
+
+	(binder ||= getBinder(node)).watch(value, handler)
+	return binder
 }

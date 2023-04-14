@@ -1,6 +1,6 @@
 {
   "name": "@nartallax/cardboard-dom",
-  "version": "1.0.3",
+  "version": "1.0.4",
   "description": "DOM utils for Cardboard",
   "main": "cardboard-dom.js",
   "types": "cardboard-dom.d.ts",
@@ -8,12 +8,16 @@
     "cardboard-dom.d.ts",
     "cardboard-dom.js.map"
   ],
+  "peerDependencies": {
+    "@nartallax/cardboard": "^1.0.9"
+  },
   "scripts": {
     "test": "./node_modules/.bin/parcel serve --target test --no-cache --no-hmr",
     "dts": "npm run dts:generate && npm run dts:cleanup",
     "dts:generate": "./node_modules/.bin/parcel build --target types --no-cache",
     "dts:cleanup": "mv cardboard-dom.d.ts target/",
-    "build": "npm run build:prepare && npm run dts && npm run build:build && npm run build:copy_artifacts && npm run build:copy_static",
+    "typecheck": "cd ts && ../node_modules/typescript/bin/tsc --noEmit && cd - > /dev/null",
+    "build": "npm run typecheck && npm run build:prepare && npm run dts && npm run build:build && npm run build:copy_artifacts && npm run build:copy_static",
     "build:prepare": "rm -rf ./target && rm -rf ./dist && mkdir ./target",
     "build:build": "./node_modules/.bin/parcel build --target release --no-cache",
     "build:copy_artifacts": "cp ./dist/release/* ./target/",
@@ -58,8 +62,5 @@
       "isLibrary": true,
       "outputFormat": "esmodule"
     }
-  },
-  "dependencies": {
-    "@nartallax/cardboard": "^1.0.7"
   }
 }

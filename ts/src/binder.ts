@@ -1,5 +1,5 @@
 import {DomMutationHandler} from "src/dom_mutation_handler"
-import {isRBox, RBox} from "@nartallax/cardboard"
+import {RBox} from "@nartallax/cardboard"
 import {makeNodeDataAttacher} from "src/node_data_attacher"
 
 /** Binder is a way to access various lifecycle events of DOM nodes
@@ -8,7 +8,6 @@ export interface Binder {
 	readonly isInDom: boolean
 
 	watch<T>(box: RBox<T>, handler: (value: T) => void): () => void
-	watchAndRun<T>(box: T | RBox<T>, handler: (value: T) => void): () => void
 
 	onInserted(handler: () => void): void
 	onRemoved(handler: () => void): void
@@ -114,17 +113,6 @@ export class BinderImpl implements Binder {
 		return this._subscribe(box, handler).unsub
 	}
 
-	watchAndRun<T>(box: T | RBox<T>, handler: (value: T) => void): () => void {
-		if(isRBox(box)){
-			const {unsub, watchedBox} = this._subscribe(box, handler)
-			this.invokeBoxHandler(box(), watchedBox)
-			return unsub
-		} else {
-			handler(box)
-			return noOp
-		}
-	}
-
 }
 
 const binderStorage = makeNodeDataAttacher<BinderImpl>("__binder_of_this_node")
@@ -138,10 +126,6 @@ export function getBinder(el: Node): Binder {
 		binderStorage.set(el, binder)
 	}
 	return binder
-}
-
-function noOp(): void {
-	// this function does nothing
 }
 
 // yeah, not very effective

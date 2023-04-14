@@ -6,8 +6,11 @@ It will be hard to write a website without them.
 ## Install
 
 ```bash
+npm install @nartallax/cardboard
 npm install @nartallax/cardboard-dom
 ```
+
+Note that `@nartallax/cardboard` is a peer dependency and must be installed first.  
 
 ## Usage
 

@@ -1,8 +1,7 @@
 import {Binder, getBinder} from "src/binder"
-import {isRBox, unbox} from "@nartallax/cardboard"
-import {MaybeRBoxed} from "src/tag"
+import {MRBox, isRBox, unbox} from "@nartallax/cardboard"
 
-type ClassNamePart = MaybeRBoxed<string | null | undefined> | Record<string, MaybeRBoxed<boolean | undefined>>
+type ClassNamePart = MRBox<string | null | undefined> | Record<string, MRBox<boolean | undefined>>
 export type ClassNameParts = ClassNamePart | ClassNamePart[]
 
 /** Utility function that assembles classname from parts */
