@@ -1,6 +1,6 @@
 {
   "name": "@nartallax/cardboard-dom",
-  "version": "1.0.8",
+  "version": "1.0.9",
   "description": "DOM utils for Cardboard",
   "main": "cardboard-dom.js",
   "types": "cardboard-dom.d.ts",
@@ -9,7 +9,7 @@
     "cardboard-dom.js.map"
   ],
   "peerDependencies": {
-    "@nartallax/cardboard": "^1.0.11"
+    "@nartallax/cardboard": "^1.0.12"
   },
   "scripts": {
     "test": "./node_modules/.bin/parcel serve --target test --no-cache --no-hmr",

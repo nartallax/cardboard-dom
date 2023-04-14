@@ -4,7 +4,7 @@ import {RBox, RBoxed, WBox, constBoxWrap} from "@nartallax/cardboard"
 type MRBoxed<T> = [T] extends [RBox<any> | WBox<any>] ? T : RBox<T> | T
 
 export type BoxedProps<Props, Defaults = Record<never, unknown>> = {
-	readonly [k in Exclude<keyof Props, keyof Defaults>]: RBoxed<Props[k]>
+	readonly [k in Exclude<keyof Props, keyof Defaults>]: Extract<Props[k], undefined> | RBoxed<Exclude<Props[k], undefined>>
 } & {
 	readonly [k in keyof Defaults]: RBoxed<Defaults[k]>
 }
