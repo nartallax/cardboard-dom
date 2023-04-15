@@ -53,8 +53,8 @@ export type SVGTagDescription<K extends keyof SVGElementTagNameMap = keyof SVGEl
 type Maybe<E> = E | null | undefined
 type ChildArray<E = unknown> = MRBox<Maybe<E>[]>
 type HTMLChild = HTMLElement | MRBox<string | number>
-type HTMLChildArray = ChildArray<HTMLChild>
-type SVGChildArray = ChildArray<SVGElement>
+export type HTMLChildArray = ChildArray<HTMLChild>
+export type SVGChildArray = ChildArray<SVGElement>
 
 // typings are weird here, had to cast
 function resolveArgs<K, E>(a?: K | ChildArray<E>, b?: ChildArray<E>): [K, ChildArray<E> | undefined] {

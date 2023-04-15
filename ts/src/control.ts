@@ -1,4 +1,5 @@
 import {RBox, RBoxed, WBox, constBoxWrap} from "@nartallax/cardboard"
+import {HTMLChildArray} from "src/tag"
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 type MRBoxed<T> = [T] extends [RBox<any> | WBox<any>] ? T : RBox<T> | T
@@ -10,8 +11,8 @@ export type BoxedProps<Props, Defaults = Record<never, unknown>> = {
 }
 type MRBoxedProps<Props> = {readonly [k in keyof Props]: MRBoxed<Props[k]>}
 
-type Renderer<Props, Defaults = Record<never, unknown>> = (props: BoxedProps<Props, Defaults>, children: HTMLElement[]) => HTMLElement
-type ControlDef<Props> = (props: MRBoxedProps<Props>, children?: HTMLElement[]) => HTMLElement
+type Renderer<Props, Defaults = Record<never, unknown>> = (props: BoxedProps<Props, Defaults>, children: HTMLChildArray) => HTMLElement
+type ControlDef<Props> = (props: MRBoxedProps<Props>, children?: HTMLChildArray) => HTMLElement
 
 export function defineControl<P, D extends Partial<P> = Partial<P>>(defaults: D, render: Renderer<P, D>): ControlDef<P>
 export function defineControl<P>(render: Renderer<P>): ControlDef<P>

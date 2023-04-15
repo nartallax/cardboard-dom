@@ -83,6 +83,9 @@ defineTestCase("control wrapping", async() => {
 		if(props.optProp?.() === 3){
 			console.log(props.optProp?.())
 		}
+		if(!Array.isArray(children)){
+			throw new Error("No children!")
+		}
 		return tag({class: "test-label"}, [props.text, ...children])
 	})
 
