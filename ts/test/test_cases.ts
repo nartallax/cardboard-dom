@@ -146,3 +146,16 @@ defineTestCase("tag don't invoke child map more times than needed", async() => {
 	}
 	container.remove()
 })
+
+defineTestCase("can assign undefined to attr", async() => {
+	const container = tag({attrs: {"data-uwu": undefined}}, ["data-uwu"])
+	await sleep(250)
+	document.body.appendChild(container)
+	await sleep(250)
+
+	const attrVal = container.getAttribute("data-uwu")
+	if(attrVal !== null){
+		throw new Error("Wut...? " + attrVal)
+	}
+	container.remove()
+})

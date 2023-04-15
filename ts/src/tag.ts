@@ -29,7 +29,7 @@ type CustomEventHandlers<ThisType = unknown> = {
 }
 
 type Attributes = {
-	readonly [attrName: string]: MRBox<string | number | boolean>
+	readonly [attrName: string]: MRBox<string | number | boolean | undefined>
 }
 
 type StyleValues = {
@@ -95,16 +95,10 @@ function populateTag<K extends string, T, E>(tagBase: Element, description: TagD
 			const v = description.attrs[k]!
 			if(isRBox(v)){
 				binder = watch(binder, tagBase, v, v => {
-					if(v === false){
-						tagBase.removeAttribute(k)
-					} else if(v === true){
-						tagBase.setAttribute(k, k)
-					} else {
-						tagBase.setAttribute(k, v + "")
-					}
+					setAttribute(tagBase, k, v)
 				})
 			}
-			tagBase.setAttribute(k, unbox(v) + "")
+			setAttribute(tagBase, k, unbox(v))
 		}
 
 	}
@@ -155,6 +149,16 @@ function populateTag<K extends string, T, E>(tagBase: Element, description: TagD
 		setChildren(unbox(children))
 	}
 	return binder
+}
+
+function setAttribute(tagBase: Element, attrName: string, value: Attributes[string]): void {
+	if(value === false || value === undefined){
+		tagBase.removeAttribute(attrName)
+	} else if(value === true){
+		tagBase.setAttribute(attrName, attrName)
+	} else {
+		tagBase.setAttribute(attrName, value + "")
+	}
 }
 
 export function tag(): HTMLDivElement
