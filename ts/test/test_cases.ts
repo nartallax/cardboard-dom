@@ -76,14 +76,14 @@ defineTestCase("control wrapping", async() => {
 	const defaults = {
 		defaultOptProp: "uwu"
 	}
-	const Label = defineControl<{text: string, optProp?: number, defaultOptProp?: string}, typeof defaults>(defaults, props => {
+	const Label = defineControl<{text: string, optProp?: number, defaultOptProp?: string}, typeof defaults>(defaults, (props, children) => {
 		if(Math.random() < 0){
 			console.log(props.defaultOptProp())
 		}
 		if(props.optProp?.() === 3){
 			console.log(props.optProp?.())
 		}
-		return tag({class: "test-label"}, [props.text])
+		return tag({class: "test-label"}, [props.text, ...children])
 	})
 
 	const labelA = Label({text: "uwu"})

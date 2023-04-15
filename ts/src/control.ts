@@ -10,15 +10,16 @@ export type BoxedProps<Props, Defaults = Record<never, unknown>> = {
 }
 type MRBoxedProps<Props> = {readonly [k in keyof Props]: MRBoxed<Props[k]>}
 
-type Renderer<Props, Defaults = Record<never, unknown>> = (props: BoxedProps<Props, Defaults>) => HTMLElement
-type ControlDef<Props> = (props: MRBoxedProps<Props>) => HTMLElement
+type Renderer<Props, Defaults = Record<never, unknown>> = (props: BoxedProps<Props, Defaults>, children: HTMLElement[]) => HTMLElement
+type ControlDef<Props> = (props: MRBoxedProps<Props>, children?: HTMLElement[]) => HTMLElement
 
 export function defineControl<P, D extends Partial<P> = Partial<P>>(defaults: D, render: Renderer<P, D>): ControlDef<P>
 export function defineControl<P>(render: Renderer<P>): ControlDef<P>
 export function defineControl<P, D extends Partial<P>>(a: D | Renderer<P, D>, b?: Renderer<P, D>): ControlDef<P> {
 	const renderer = typeof(a) === "function" ? a as Renderer<P, D> : b as Renderer<P, D>
 	const defaults = typeof(a) === "function" ? {} as D : a as D
-	return function controlWrap(props) {
+	const expectsChildren = renderer.length > 1
+	return function controlWrap(props, children) {
 		const boxedProps: Record<string, RBox<unknown>> = {}
 		for(const key in props){
 			let v = props[key]
@@ -33,6 +34,6 @@ export function defineControl<P, D extends Partial<P>>(a: D | Renderer<P, D>, b?
 			}
 		}
 
-		return renderer(boxedProps as BoxedProps<P, D>)
+		return renderer(boxedProps as BoxedProps<P, D>, expectsChildren ? (children ?? []) : children!)
 	}
 }
