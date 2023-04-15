@@ -128,3 +128,21 @@ defineTestCase("null child among non-nulls", async() => {
 	}
 	container.remove()
 })
+
+defineTestCase("tag don't invoke child map more times than needed", async() => {
+	const data = box([1, 2, 3])
+	let invokeCount = 0
+	const container = tag(data.map(src => {
+		invokeCount++
+		return src.map(num => tag([num + ""]))
+	}))
+
+	await sleep(250)
+	document.body.appendChild(container)
+	await sleep(250)
+
+	if(invokeCount !== 1){
+		throw new Error("Too many mapper calls: " + invokeCount)
+	}
+	container.remove()
+})

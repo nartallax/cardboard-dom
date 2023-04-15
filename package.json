@@ -9,7 +9,7 @@
     "cardboard-dom.js.map"
   ],
   "peerDependencies": {
-    "@nartallax/cardboard": "^1.0.12"
+    "@nartallax/cardboard": "^1.0.13"
   },
   "scripts": {
     "test": "./node_modules/.bin/parcel serve --target test --no-cache --no-hmr",
