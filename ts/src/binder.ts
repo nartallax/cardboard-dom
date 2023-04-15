@@ -145,7 +145,7 @@ function dropItemFromArray<T>(arr: T[] | null, item: T): T[] | null {
 	return result
 }
 
-function nodeIsInDom(node: Node): boolean {
+export function nodeIsInDom(node: Node): boolean {
 	let parent = node.parentNode
 	while(parent){
 		if(parent === document.body){

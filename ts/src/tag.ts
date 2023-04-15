@@ -131,9 +131,8 @@ function populateTag<K extends string, T, E>(tagBase: Element, description: TagD
 		const setChildren = (children: Maybe<E>[]) => {
 			const childTags: Node[] = []
 			for(const child of children){
-
 				if(child === null || child === undefined){
-					return
+					continue
 				}
 				if(child instanceof Node){
 					childTags.push(child)

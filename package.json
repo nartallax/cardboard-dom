@@ -1,6 +1,6 @@
 {
   "name": "@nartallax/cardboard-dom",
-  "version": "1.0.11",
+  "version": "1.0.12",
   "description": "DOM utils for Cardboard",
   "main": "cardboard-dom.js",
   "types": "cardboard-dom.d.ts",

@@ -1,4 +1,5 @@
 import {WBox, box} from "@nartallax/cardboard"
+import {nodeIsInDom} from "src/binder"
 import {defineControl} from "src/control"
 import {localStorageBox} from "src/local_storage_box"
 import {tag} from "src/tag"
@@ -114,4 +115,16 @@ defineTestCase("control wrapping", async() => {
 
 	labelA.remove()
 	labelB.remove()
+})
+
+defineTestCase("null child among non-nulls", async() => {
+	const childA = tag(["non-null child"])
+	const childB = null
+	const container = tag([childA, childB])
+	await sleep(250)
+	document.body.appendChild(container)
+	if(!nodeIsInDom(childA)){
+		throw new Error("child A is not in DOM")
+	}
+	container.remove()
 })
