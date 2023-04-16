@@ -32,8 +32,10 @@ defineTestCase("unsubscribe from box when element is removed from DOM", async() 
 		return x ? b(x) : b()
 	} as unknown as WBox<string> & Record<string, unknown>
 
-	pseudoBox.isRBox = true
-	pseudoBox.isWBox = true
+	// eslint-disable-next-line @typescript-eslint/no-explicit-any
+	(pseudoBox as any).isRBox = true;
+	// eslint-disable-next-line @typescript-eslint/no-explicit-any
+	(pseudoBox as any).isWBox = true
 	pseudoBox.subscribe = (handler: (value: string) => void) => {
 		subCalls++
 		const unsub = b.subscribe(handler)

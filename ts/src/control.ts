@@ -1,13 +1,13 @@
-import {RBox, RBoxed, WBox, constBoxWrap} from "@nartallax/cardboard"
+import {RBox, Boxed, WBox, constBoxWrap} from "@nartallax/cardboard"
 import {HTMLChildArray} from "src/tag"
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 type MRBoxed<T> = [T] extends [RBox<any> | WBox<any>] ? T : RBox<T> | T
 
 export type BoxedProps<Props, Defaults = Record<never, unknown>> = {
-	readonly [k in Exclude<keyof Props, keyof Defaults>]: Extract<Props[k], undefined> | RBoxed<Exclude<Props[k], undefined>>
+	readonly [k in Exclude<keyof Props, keyof Defaults>]: Extract<Props[k], undefined> | Boxed<Exclude<Props[k], undefined>>
 } & {
-	readonly [k in keyof Defaults]: RBoxed<Defaults[k]>
+	readonly [k in keyof Defaults]: Boxed<Defaults[k]>
 }
 type MRBoxedProps<Props> = {readonly [k in keyof Props]: MRBoxed<Props[k]>}
 
