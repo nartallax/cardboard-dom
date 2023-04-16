@@ -175,3 +175,31 @@ defineTestCase("can pass a box of null as child", async() => {
 	}
 	container.remove()
 })
+
+defineTestCase("can omit props if they can be empty", async() => {
+	const ctrl = defineControl<{opt?: string}>(props => {
+		return tag([props.opt ?? "uwu"])
+	})
+	const el = ctrl()
+
+	const defaults = {value: "owo"}
+	const ctrl2 = defineControl<{value?: string}, typeof defaults>(defaults, props => tag([props.value]))
+	const el2 = ctrl2()
+
+	await sleep(250)
+	document.body.appendChild(el)
+	document.body.appendChild(el2)
+	await sleep(250)
+
+	const text = el.textContent
+	if(text !== "uwu"){
+		throw new Error("Wut...? " + text)
+	}
+	el.remove()
+
+	const text2 = el2.textContent
+	if(text2 !== "owo"){
+		throw new Error("Wut...? " + text2)
+	}
+	el2.remove()
+})

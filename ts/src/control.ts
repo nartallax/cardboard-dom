@@ -7,12 +7,12 @@ type MRBoxed<T> = [T] extends [RBox<any> | WBox<any>] ? T : RBox<T> | T
 export type BoxedProps<Props, Defaults = Record<never, unknown>> = {
 	readonly [k in Exclude<keyof Props, keyof Defaults>]: Extract<Props[k], undefined> | Boxed<Exclude<Props[k], undefined>>
 } & {
-	readonly [k in keyof Defaults]: Boxed<Defaults[k]>
+	readonly [k in keyof Defaults & keyof Props]: Boxed<Defaults[k] | Exclude<Props[k], undefined>>
 }
 type MRBoxedProps<Props> = {readonly [k in keyof Props]: MRBoxed<Props[k]>}
 
 type Renderer<Props, Defaults = Record<never, unknown>> = (props: BoxedProps<Props, Defaults>, children: HTMLChildArray) => HTMLElement
-type ControlDef<Props> = (props: MRBoxedProps<Props>, children?: HTMLChildArray) => HTMLElement
+type ControlDef<Props> = (Record<string, never> extends Props ? (children?: HTMLChildArray) => HTMLElement : void) & ((props: MRBoxedProps<Props>, children?: HTMLChildArray) => HTMLElement)
 
 export function defineControl<P, D extends Partial<P> = Partial<P>>(defaults: D, render: Renderer<P, D>): ControlDef<P>
 export function defineControl<P>(render: Renderer<P>): ControlDef<P>
@@ -20,7 +20,10 @@ export function defineControl<P, D extends Partial<P>>(a: D | Renderer<P, D>, b?
 	const renderer = typeof(a) === "function" ? a as Renderer<P, D> : b as Renderer<P, D>
 	const defaults = typeof(a) === "function" ? {} as D : a as D
 	const expectsChildren = renderer.length > 1
-	return function controlWrap(props, children) {
+	const controlWrap = (propsOrChildren?: MRBoxedProps<P> | HTMLChildArray, mbChildren?: HTMLChildArray): HTMLElement => {
+		const props = (Array.isArray(propsOrChildren) ? {} : propsOrChildren) as MRBoxedProps<P>
+		const children = Array.isArray(propsOrChildren) ? propsOrChildren : mbChildren
+
 		const boxedProps: Record<string, RBox<unknown>> = {}
 		for(const key in props){
 			let v = props[key]
@@ -37,4 +40,6 @@ export function defineControl<P, D extends Partial<P>>(a: D | Renderer<P, D>, b?
 
 		return renderer(boxedProps as BoxedProps<P, D>, expectsChildren ? (children ?? []) : children!)
 	}
+
+	return controlWrap as ControlDef<P>
 }
