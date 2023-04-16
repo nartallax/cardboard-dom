@@ -52,7 +52,7 @@ export type SVGTagDescription<K extends keyof SVGElementTagNameMap = keyof SVGEl
 
 type Maybe<E> = E | null | undefined
 type ChildArray<E = unknown> = MRBox<Maybe<E>[]>
-type HTMLChild = HTMLElement | MRBox<string | number>
+type HTMLChild = HTMLElement | MRBox<string | number | null | undefined | boolean>
 export type HTMLChildArray = ChildArray<HTMLChild>
 export type SVGChildArray = ChildArray<SVGElement>
 
@@ -125,11 +125,12 @@ function populateTag<K extends string, T, E>(tagBase: Element, description: TagD
 		const setChildren = (children: Maybe<E>[]) => {
 			const childTags: Node[] = []
 			for(const child of children){
-				if(child === null || child === undefined){
+				if(child === null || child === undefined || child === true || child === false){
 					continue
 				}
 				if(child instanceof Node){
 					childTags.push(child)
+					continue
 				}
 				if(renderChild){
 					const rendered = renderChild(child as Exclude<E, Node | null | undefined>)
@@ -196,19 +197,27 @@ export function tag<K extends keyof HTMLElementTagNameMap = "div">(a?: HTMLTagDe
 	return tagBase as HTMLElementTagNameMap[K]
 }
 
+function getHtmlChildContent(content: string | number | boolean | null | undefined): string | null {
+	if(content === null || content === undefined || content === true || content === false){
+		return null
+	} else {
+		return content + ""
+	}
+
+}
+
 function renderHTMLChild(child: Exclude<HTMLChild, Node>): Node | null {
 	if(isRBox(child)){
-		const node = document.createTextNode(child() + "")
-		watch(null, node, child, value => node.textContent = value + "")
+		const content = getHtmlChildContent(child()) ?? ""
+		const node = document.createTextNode(content)
+		watch(null, node, child, value => node.textContent = getHtmlChildContent(value) ?? "")
 		return node
 	}
-	if(typeof(child) === "string" || typeof(child) === "number"){
-		if(child === ""){
-			return null
-		}
-		return document.createTextNode(child + "")
+	const content = getHtmlChildContent(child)
+	if(content === null){
+		return null
 	}
-	return null
+	return document.createTextNode(content)
 }
 
 export function svgTag(): SVGGElement

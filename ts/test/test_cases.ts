@@ -159,3 +159,17 @@ defineTestCase("can assign undefined to attr", async() => {
 	}
 	container.remove()
 })
+
+defineTestCase("can pass a box of null as child", async() => {
+	const boxOfNull = box(null)
+	const container = tag({class: "null-box-child-test"}, [boxOfNull])
+	await sleep(250)
+	document.body.appendChild(container)
+	await sleep(250)
+
+	const text = container.textContent
+	if(text){
+		throw new Error("Wut...? " + text)
+	}
+	container.remove()
+})
