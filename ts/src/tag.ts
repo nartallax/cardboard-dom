@@ -32,8 +32,12 @@ type Attributes = {
 	readonly [attrName: string]: MRBox<string | number | boolean | undefined>
 }
 
+type IsAnyString<X, IfTrue, IfFalse> = string extends X ? IfTrue : IfFalse
+
+type StyleValue<K extends keyof WritableStyles> = IsAnyString<CSSStyleDeclaration[K], string | number, CSSStyleDeclaration[K]> | null | undefined
+
 type StyleValues = {
-	readonly [k in keyof WritableStyles]?: MRBox<CSSStyleDeclaration[k] | null | undefined>
+	readonly [k in keyof WritableStyles]?: MRBox<StyleValue<k>>
 }
 
 type TagDescription<K extends string = string, ThisType = unknown> = EventHandlers<ThisType> & CustomEventHandlers<ThisType> & {
@@ -51,7 +55,7 @@ export type HTMLTagDescription<K extends keyof HTMLElementTagNameMap = keyof HTM
 export type SVGTagDescription<K extends keyof SVGElementTagNameMap = keyof SVGElementTagNameMap> = TagDescription<K, SVGElementTagNameMap[K]>
 
 type Maybe<E> = E | null | undefined
-type ChildArray<E = unknown> = MRBox<Maybe<E>[]>
+type ChildArray<E = unknown> = MRBox<readonly Maybe<E>[]>
 type HTMLChild = HTMLElement | MRBox<string | number | null | undefined | boolean>
 export type HTMLChildArray = ChildArray<HTMLChild>
 export type SVGChildArray = ChildArray<SVGElement>
@@ -63,7 +67,7 @@ function resolveArgs<K, E>(a?: K | ChildArray<E>, b?: ChildArray<E>): [K, ChildA
 	} else if(Array.isArray(a) || isRBox(a)){
 		return [{} as K, a]
 	} else {
-		return [a, b]
+		return [a as K, b]
 	}
 }
 
@@ -122,7 +126,7 @@ function populateTag<K extends string, T, E>(tagBase: Element, description: TagD
 	}
 
 	if(children){
-		const setChildren = (children: Maybe<E>[]) => {
+		const setChildren = (children: readonly Maybe<E>[]) => {
 			const childTags: Node[] = []
 			for(const child of children){
 				if(child === null || child === undefined || child === true || child === false){

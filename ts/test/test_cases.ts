@@ -203,3 +203,64 @@ defineTestCase("can omit props if they can be empty", async() => {
 	}
 	el2.remove()
 })
+
+defineTestCase("can assign number to attr/style", async() => {
+	const container = tag({attrs: {"data-uwu": 5, "data-owo": box(10)}, style: {flexGrow: 1, flexShrink: box(1)}}, ["data-ayaya"])
+	await sleep(250)
+	document.body.appendChild(container)
+	await sleep(250)
+
+	{
+		const attrVal = container.getAttribute("data-uwu")
+		if(attrVal !== "5"){
+			throw new Error("Wut...? " + attrVal)
+		}
+	}
+
+	{
+		const attrVal = container.getAttribute("data-owo")
+		if(attrVal !== "10"){
+			throw new Error("Wut...? " + attrVal)
+		}
+	}
+
+	{
+		const styleVal = container.style.flexGrow
+		if(styleVal !== "1"){
+			throw new Error("Wut...? " + styleVal)
+		}
+	}
+
+	{
+		const styleVal = container.style.flexShrink
+		if(styleVal !== "1"){
+			throw new Error("Wut...? " + styleVal)
+		}
+	}
+
+
+	container.remove()
+})
+
+defineTestCase("can pass result of mapArray as tag children", async() => {
+	const b = box(["nyom nyom"])
+	const container = tag(b.mapArray(() => 1, str => tag([str])))
+	await sleep(250)
+	document.body.appendChild(container)
+	await sleep(250)
+
+	const text = container.textContent
+	if(text !== "nyom nyom"){
+		throw new Error("Wut...? " + text)
+	}
+
+	b(["nyom nyom nyom"])
+	await sleep(250)
+
+	const text2 = container.textContent
+	if(text2 !== "nyom nyom nyom"){
+		throw new Error("Wut...? " + text)
+	}
+
+	container.remove()
+})
