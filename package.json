@@ -1,15 +1,12 @@
 {
   "name": "@nartallax/cardboard-dom",
-  "version": "1.0.18",
+  "version": "1.0.19",
   "description": "DOM utils for Cardboard",
   "main": "cardboard-dom.js",
   "types": "cardboard-dom.d.ts",
-  "files": [
-    "cardboard-dom.d.ts",
-    "cardboard-dom.js.map"
-  ],
+  "type": "module",
   "peerDependencies": {
-    "@nartallax/cardboard": "^1.0.14"
+    "@nartallax/cardboard": "^1.0.18"
   },
   "scripts": {
     "test": "./node_modules/.bin/parcel serve --target test --no-cache --no-hmr",
@@ -17,11 +14,11 @@
     "dts:generate": "./node_modules/.bin/parcel build --target types --no-cache",
     "dts:cleanup": "mv cardboard-dom.d.ts target/",
     "typecheck": "cd ts && ../node_modules/typescript/bin/tsc --noEmit && cd - > /dev/null",
-    "build": "npm run typecheck && npm run build:prepare && npm run dts && npm run build:build && npm run build:copy_artifacts && npm run build:copy_static",
+    "build": "npm run typecheck && npm run build:prepare && npm run dts && npm run build:build && npm run build:copy_static",
     "build:prepare": "rm -rf ./target && rm -rf ./dist && mkdir ./target",
-    "build:build": "./node_modules/.bin/parcel build --target release --no-cache",
-    "build:copy_artifacts": "cp ./dist/release/* ./target/",
-    "build:copy_static": "cp ./package.json ./target/ && cp ./LICENSE ./target/ && cp ./README.md ./target",
+    "build:build": "./node_modules/.bin/parcel build --target release --no-cache && cp ./dist/release/* ./target/",
+    "build:copy_static": "cp ./LICENSE ./target/ && cp ./README.md ./target && npm run build:cut_package",
+    "build:cut_package": "./node_modules/.bin/package-cutter --output ./target/package.json",
     "pub": "npm run build && npm run pub:publish",
     "pub:publish": "cd target && npm publish --access public && cd .."
   },
@@ -36,6 +33,7 @@
   },
   "homepage": "https://github.com/nartallax/cardboard-dom#readme",
   "devDependencies": {
+    "@nartallax/package-cutter": "^1.0.2",
     "@parcel/packager-ts": "^2.8.3",
     "@parcel/transformer-sass": "^2.8.3",
     "@parcel/transformer-typescript-tsc": "^2.8.3",
