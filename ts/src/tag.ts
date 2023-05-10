@@ -56,7 +56,7 @@ export type SVGTagDescription<K extends keyof SVGElementTagNameMap = keyof SVGEl
 
 type Maybe<E> = E | null | undefined
 type ChildArray<E = unknown> = MRBox<readonly Maybe<E>[]>
-type HTMLChild = HTMLElement | MRBox<string | number | null | undefined | boolean>
+type HTMLChild = HTMLElement | SVGElement | MRBox<string | number | null | undefined | boolean>
 export type HTMLChildArray = ChildArray<HTMLChild>
 export type SVGChildArray = ChildArray<SVGElement>
 

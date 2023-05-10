@@ -2,7 +2,7 @@ import {WBox, box} from "@nartallax/cardboard"
 import {nodeIsInDom} from "src/binder"
 import {defineControl} from "src/control"
 import {localStorageBox} from "src/local_storage_box"
-import {tag} from "src/tag"
+import {svgTag, tag} from "src/tag"
 
 export const testCases: {name: string, tester(): void | Promise<void>}[] = []
 
@@ -260,6 +260,21 @@ defineTestCase("can pass result of mapArray as tag children", async() => {
 	const text2 = container.textContent
 	if(text2 !== "nyom nyom nyom"){
 		throw new Error("Wut...? " + text)
+	}
+
+	container.remove()
+})
+
+defineTestCase("can pass svg as child of div", async() => {
+	const svg = svgTag({tag: "svg"}, [svgTag({tag: "path", attrs: {d: "M150 0 L75 200 L225 200 Z"}})])
+	const container = tag([svg])
+	await sleep(250)
+	document.body.appendChild(container)
+	await sleep(250)
+
+	let svgFromSearch = container.querySelector("svg")
+	if(!svgFromSearch){
+		throw new Error("No svg")
 	}
 
 	container.remove()
