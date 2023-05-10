@@ -287,3 +287,20 @@ function watchAndRun<T>(binder: Binder | null, node: Node, value: MRBox<T>, hand
 	(binder ||= getBinder(node)).watch(value, handler)
 	return binder
 }
+
+export function onMount(el: Element, handler: (() => void) | (() => () => void)): void {
+	const binder = getBinder(el)
+	binder.onInserted(() => {
+		const result = handler()
+		if(typeof(result) === "function"){
+			const removeHandler = () => {
+				try {
+					result()
+				} finally {
+					binder.offRemoved(removeHandler)
+				}
+			}
+			binder.onRemoved(removeHandler)
+		}
+	})
+}

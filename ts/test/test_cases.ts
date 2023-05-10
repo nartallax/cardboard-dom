@@ -272,7 +272,7 @@ defineTestCase("can pass svg as child of div", async() => {
 	document.body.appendChild(container)
 	await sleep(250)
 
-	let svgFromSearch = container.querySelector("svg")
+	const svgFromSearch = container.querySelector("svg")
 	if(!svgFromSearch){
 		throw new Error("No svg")
 	}
