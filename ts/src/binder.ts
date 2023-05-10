@@ -32,7 +32,7 @@ export class BinderImpl implements Binder {
 	isInDom: boolean
 
 	constructor(readonly el: Node) {
-		this.isInDom = nodeIsInDom(el)
+		this.isInDom = isInDOM(el)
 	}
 
 	onInserted(handler: () => void): void {
@@ -145,7 +145,7 @@ function dropItemFromArray<T>(arr: T[] | null, item: T): T[] | null {
 	return result
 }
 
-export function nodeIsInDom(node: Node): boolean {
+export function isInDOM(node: Node): boolean {
 	let parent = node.parentNode
 	while(parent){
 		if(parent === document.body){

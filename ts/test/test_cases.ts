@@ -1,5 +1,5 @@
 import {WBox, box} from "@nartallax/cardboard"
-import {nodeIsInDom} from "src/binder"
+import {isInDOM} from "src/binder"
 import {defineControl} from "src/control"
 import {localStorageBox} from "src/local_storage_box"
 import {svgTag, tag} from "src/tag"
@@ -125,7 +125,7 @@ defineTestCase("null child among non-nulls", async() => {
 	const container = tag([childA, childB])
 	await sleep(250)
 	document.body.appendChild(container)
-	if(!nodeIsInDom(childA)){
+	if(!isInDOM(childA)){
 		throw new Error("child A is not in DOM")
 	}
 	container.remove()
