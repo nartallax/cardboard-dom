@@ -15,17 +15,14 @@ export function localStorageBox<T>(...args: unknown[]): WBox<T | undefined> {
 
 	const {parse, serialize} = params || {parse: x => JSON.parse(x), serialize: x => JSON.stringify(x)}
 
-	const result = box(args.length > 1 ? defaultValue : undefined)
 	const startingValue = localStorage.getItem(name)
-	if(startingValue !== null){
-		result(parse(startingValue))
-	}
+	const result = box(startingValue !== null ? parse(startingValue) : args.length > 1 ? defaultValue : undefined)
 
 	result.subscribe(newValue => {
 		if(newValue === undefined){
 			localStorage.removeItem(name)
 		} else {
-			localStorage.setItem(name, serialize(newValue!))
+			localStorage.setItem(name, serialize(newValue))
 		}
 	})
 
