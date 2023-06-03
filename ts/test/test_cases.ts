@@ -279,3 +279,24 @@ defineTestCase("can pass svg as child of div", async() => {
 
 	container.remove()
 })
+
+defineTestCase("can pass boxed array of children to control without props", async() => {
+	const Form = defineControl((_, children) => {
+		return tag({class: "form"}, children)
+	})
+
+	const b = box<HTMLElement[]>([])
+
+	const form = Form(b)
+	await sleep(250)
+	document.body.appendChild(form)
+	await sleep(250)
+	b([tag({class: "this_is_form_field"}, ["This is form field!"])])
+	await sleep(250)
+	const formFieldFromQuery = document.querySelector(".this_is_form_field")
+	if(!formFieldFromQuery){
+		throw new Error("Children not updated")
+	}
+
+	form.remove()
+})

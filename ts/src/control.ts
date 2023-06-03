@@ -1,4 +1,4 @@
-import {RBox, Boxed, WBox, constBoxWrap} from "@nartallax/cardboard"
+import {RBox, Boxed, WBox, constBoxWrap, unbox} from "@nartallax/cardboard"
 import {HTMLChildArray} from "src/tag"
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -21,8 +21,9 @@ export function defineControl<P, D extends Partial<P>>(a: D | Renderer<P, D>, b?
 	const defaults = typeof(a) === "function" ? {} as D : a as D
 	const expectsChildren = renderer.length > 1
 	const controlWrap = (propsOrChildren?: MRBoxedProps<P> | HTMLChildArray, mbChildren?: HTMLChildArray): HTMLElement => {
-		const props = (Array.isArray(propsOrChildren) ? {} : propsOrChildren) as MRBoxedProps<P>
-		const children = Array.isArray(propsOrChildren) ? propsOrChildren : mbChildren
+		const firstArgIsChildren = Array.isArray(unbox(propsOrChildren))
+		const props = (firstArgIsChildren ? {} : propsOrChildren) as MRBoxedProps<P>
+		const children = firstArgIsChildren ? propsOrChildren as HTMLChildArray : mbChildren
 
 		const boxedProps: Record<string, RBox<unknown>> = {}
 		for(const key in props){
