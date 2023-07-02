@@ -1,6 +1,9 @@
 import {BinderImpl} from "src/binder"
 import {NodeDataAttacher} from "src/node_data_attacher"
 
+// for tests mostly
+export let lastDomMutationError: Error | null = null
+
 export class DomMutationHandler {
 	private observer: MutationObserver | null = null
 
@@ -32,35 +35,45 @@ export class DomMutationHandler {
 	}
 
 	private doWithRecords(records: MutationRecord[]): void {
-		const addedNodesArr = [] as Node[]
-		const removedNodesArr = [] as Node[]
-		for(let i = 0; i < records.length; i++){
-			const record = records[i]!
-			for(let j = 0; j < record.addedNodes.length; j++){
-				addedNodesArr.push(record.addedNodes[j]!)
+		try {
+			const addedNodesArr = [] as Node[]
+			const removedNodesArr = [] as Node[]
+			for(let i = 0; i < records.length; i++){
+				const record = records[i]!
+				for(let j = 0; j < record.addedNodes.length; j++){
+					addedNodesArr.push(record.addedNodes[j]!)
+				}
+				for(let j = 0; j < record.removedNodes.length; j++){
+					removedNodesArr.push(record.removedNodes[j]!)
+				}
 			}
-			for(let j = 0; j < record.removedNodes.length; j++){
-				removedNodesArr.push(record.removedNodes[j]!)
-			}
-		}
 
-		const addedNodes = this.collectEligibleNodes(addedNodesArr)
-		const removedNodes = this.collectEligibleNodes(removedNodesArr)
+			const addedNodes = this.collectEligibleNodes(addedNodesArr)
+			const removedNodes = this.collectEligibleNodes(removedNodesArr)
 
-		// TODO: can optimise here maybe? to not check twice for nodes that was both inserted and removed
-		// also this whole algo feels slow
-		for(const node of addedNodes){
-			if(removedNodes.has(node)){
-				continue
-			}
-			this.binders.get(node)!.fireNodeInserted()
-		}
+			// console.log("add: " + [...addedNodes].map(node => (node as HTMLElement).outerHTML).join("\n"))
+			// console.log("remove: " + [...removedNodes].map(node => (node as HTMLElement).outerHTML).join("\n"))
 
-		for(const node of removedNodes){
-			if(addedNodes.has(node)){
-				continue
+			// TODO: can optimise here maybe? to not check twice for nodes that was both inserted and removed
+			// also this whole algo feels slow
+			for(const node of addedNodes){
+				if(removedNodes.has(node)){
+					continue
+				}
+				this.binders.get(node)!.fireNodeInserted()
 			}
-			this.binders.get(node)!.fireNodeRemoved()
+
+			for(const node of removedNodes){
+				if(addedNodes.has(node)){
+					continue
+				}
+				this.binders.get(node)!.fireNodeRemoved()
+			}
+		} catch(e){
+			if(e instanceof Error){
+				lastDomMutationError = e
+			}
+			throw e
 		}
 	}
 }

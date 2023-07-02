@@ -8,6 +8,7 @@ export interface Binder {
 	readonly isInDom: boolean
 
 	watch<T>(box: RBox<T>, handler: (value: T) => void): () => void
+	watchAndRun<T>(box: RBox<T>, handler: (value: T) => void): () => void
 
 	onInserted(handler: () => void): void
 	onRemoved(handler: () => void): void
@@ -57,11 +58,25 @@ export class BinderImpl implements Binder {
 		if(boxes){
 			for(let i = 0; i < boxes.length; i++){
 				const box = boxes[i]!
-				const value = box.box()
-				if(box.lastKnownValue !== value){
-					this.invokeBoxHandler(value, box)
+				// TODO: this is extremely bad way to do what we need to do
+				// but it'll do for now
+				// we do this because box is throwing errors when detached from upstream
+				// and the fix is long and inobvious
+				// this error should be resolved when (if) I rewrite cardboard to properly use value versioning
+				//
+				// the source of this error is - elements are rendered synchronously, and subscribed synchronously
+				// but the updates to the DOM tree are asynchronous
+				// so, when update is here already, box that was subscribed to in render phase can be detached already
+				try {
+					const value = box.box()
+					if(box.lastKnownValue !== value){
+						this.invokeBoxHandler(value, box)
+					}
+					this.subToBox(box)
+				} catch(e){
+					box.unsub = () => {/* noop */}
+					console.warn("Box update error ignored: " + e)
 				}
-				this.subToBox(box)
 			}
 		}
 
@@ -111,6 +126,12 @@ export class BinderImpl implements Binder {
 
 	watch<T>(box: RBox<T>, handler: (value: T) => void): () => void {
 		return this._subscribe(box, handler).unsub
+	}
+
+	watchAndRun<T>(box: RBox<T>, handler: (value: T) => void): () => void {
+		const {unsub, watchedBox} = this._subscribe(box, handler)
+		this.invokeBoxHandler(box(), watchedBox)
+		return unsub
 	}
 
 }

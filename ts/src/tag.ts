@@ -84,27 +84,12 @@ function populateTag<K extends string, T, E>(tagBase: Element, description: TagD
 		) || binder
 	}
 
-	if("text" in description){
-		const v = description.text!
-		if(isRBox(v)){
-			binder = watch(binder, tagBase, v, text => {
-				tagBase.textContent = text + ""
-			})
-		}
-		tagBase.textContent = unbox(v) + ""
-	}
-
 	if(description.attrs){
 		for(const k in description.attrs){
-			const v = description.attrs[k]!
-			if(isRBox(v)){
-				binder = watch(binder, tagBase, v, v => {
-					setAttribute(tagBase, k, v)
-				})
-			}
-			setAttribute(tagBase, k, unbox(v))
+			binder = watchAndRun(binder, tagBase, description.attrs[k]!, v => {
+				setAttribute(tagBase, k, v)
+			})
 		}
-
 	}
 
 	for(const k in description){
@@ -126,34 +111,31 @@ function populateTag<K extends string, T, E>(tagBase: Element, description: TagD
 	}
 
 	if(children){
-		const setChildren = (children: readonly Maybe<E>[]) => {
-			const childTags: Node[] = []
-			for(const child of children){
-				if(child === null || child === undefined || child === true || child === false){
-					continue
-				}
-				if(child instanceof Node){
-					childTags.push(child)
-					continue
-				}
-				if(renderChild){
-					const rendered = renderChild(child as Exclude<E, Node | null | undefined>)
-					if(rendered !== null){
-						childTags.push(rendered)
-					}
-				}
-			}
-			updateChildren(tagBase, childTags)
-		}
-
-		if(isRBox(children)){
-			binder = watch(binder, tagBase, children, children => {
-				setChildren(children)
-			})
-		}
-		setChildren(unbox(children))
+		binder = watchAndRun(binder, tagBase, children, children => {
+			setChildren(tagBase, children, renderChild)
+		})
 	}
 	return binder
+}
+
+function setChildren<E>(tagBase: Element, children: readonly Maybe<E>[], renderChild?: (el: Exclude<E, Node | null | undefined>) => Node | null) {
+	const childTags: Node[] = []
+	for(const child of children){
+		if(child === null || child === undefined || child === true || child === false){
+			continue
+		}
+		if(child instanceof Node){
+			childTags.push(child)
+			continue
+		}
+		if(renderChild){
+			const rendered = renderChild(child as Exclude<E, Node | null | undefined>)
+			if(rendered !== null){
+				childTags.push(rendered)
+			}
+		}
+	}
+	updateChildren(tagBase, childTags)
 }
 
 function setAttribute(tagBase: Element, attrName: string, value: Attributes[string]): void {
@@ -181,20 +163,13 @@ export function tag<K extends keyof HTMLElementTagNameMap = "div">(a?: HTMLTagDe
 	if(description.style){
 		for(const k in description.style){
 			const styleValue = description.style[k]
-			if(isRBox(styleValue)){
-				binder = watch(binder, tagBase, styleValue, v => {
-					if(v === undefined || v === null){
-						tagBase.style.removeProperty(k)
-					} else {
-						tagBase.style[k] = v as string // ew
-					}
-				})
-			}
-			// ewwwww.
-			const value = unbox(styleValue)
-			if(value !== undefined){
-				tagBase.style[k] = value + ""
-			}
+			binder = watchAndRun(binder, tagBase, styleValue, v => {
+				if(v === undefined || v === null){
+					tagBase.style.removeProperty(k)
+				} else {
+					tagBase.style[k] = v as string // ew
+				}
+			})
 		}
 	}
 
@@ -212,9 +187,10 @@ function getHtmlChildContent(content: string | number | boolean | null | undefin
 
 function renderHTMLChild(child: Exclude<HTMLChild, Node>): Node | null {
 	if(isRBox(child)){
-		const content = getHtmlChildContent(child()) ?? ""
-		const node = document.createTextNode(content)
-		watch(null, node, child, value => node.textContent = getHtmlChildContent(value) ?? "")
+		const node = document.createTextNode("")
+		watchAndRun(null, node, child, value => {
+			node.textContent = getHtmlChildContent(value) ?? ""
+		})
 		return node
 	}
 	const content = getHtmlChildContent(child)
@@ -278,13 +254,16 @@ function watch<T>(binder: Binder | null, node: Node, value: MRBox<T>, handler: (
 	return binder
 }
 
+// watchAndRun cannot be substituted with just doing the actions and calling watch() with same box and node
+// because watchAndRun will also notify binder about last used value
+// this helps to avoid some weird situations and double-running of the same code
 function watchAndRun<T>(binder: Binder | null, node: Node, value: MRBox<T>, handler: (value: T) => void): Binder | null {
 	if(!isRBox(value) || isConstBox(value)){
 		handler(unbox(value))
 		return binder
 	}
 
-	(binder ||= getBinder(node)).watch(value, handler)
+	(binder ||= getBinder(node)).watchAndRun(value, handler)
 	return binder
 }
 
