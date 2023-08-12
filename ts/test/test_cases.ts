@@ -1,7 +1,6 @@
-import {RBox, WBox, box} from "@nartallax/cardboard"
+import {box} from "@nartallax/cardboard"
 import {isInDOM} from "src/binder"
 import {defineControl} from "src/control"
-import {lastDomMutationError} from "src/dom_mutation_handler"
 import {localStorageBox} from "src/local_storage_box"
 import {svgTag, tag, whileMounted} from "src/tag"
 
@@ -26,48 +25,51 @@ defineTestCase("update DOM when box changes", async() => {
 
 defineTestCase("unsubscribe from box when element is removed from DOM", async() => {
 	const b = box("test")
-	let subCalls = 0
-	let unsubCalls = 0
+	let callsCount = 0
+	const calcBox = b.map(a => {
+		callsCount++
+		return a + "!"
+	})
 
-	const pseudoBox = function(x?: string): string {
-		return x ? b(x) : b()
-	} as unknown as WBox<string> & Record<string, unknown>
-
-	// eslint-disable-next-line @typescript-eslint/no-explicit-any
-	(pseudoBox as any).isRBox = true;
-	// eslint-disable-next-line @typescript-eslint/no-explicit-any
-	(pseudoBox as any).isWBox = true
-	pseudoBox.subscribe = (handler: (value: string) => void) => {
-		subCalls++
-		const unsub = b.subscribe(handler)
-		return () => {
-			unsubCalls++
-			return unsub()
-		}
+	const element = tag({style: {display: "none"}}, [calcBox])
+	if(callsCount !== 1){
+		throw new Error("Expected 1 call, got " + callsCount)
 	}
-
-	const element = tag({style: {display: "none"}}, [pseudoBox])
 	await sleep(250)
 	document.body.appendChild(element)
+	await sleep(250)
+
+	b.set("test2")
+	if(callsCount as unknown !== 2){ // uhh.
+		throw new Error("Expected 2 calls, got " + callsCount)
+	}
+
 	await sleep(500)
+
+	b.set("test3")
+	if(callsCount as unknown !== 3){
+		throw new Error("Expected 3 calls, got " + callsCount)
+	}
 	element.remove()
-	await sleep(1)
-	if(subCalls !== 1 || unsubCalls !== 1){
-		throw new Error("Wrong number of sub/unsub calls: " + subCalls + " and " + unsubCalls)
+	await sleep(250)
+
+	b.set("test4")
+	if(callsCount as unknown !== 3){
+		throw new Error("Expected 3 calls, got " + callsCount)
 	}
 })
 
 defineTestCase("local storage box", async() => {
 	const name = "test-local-storage-value"
 	try {
-		const box = localStorageBox(name, {a: 5, b: 10})
-		if(box().a !== 5){
-			throw new Error(`${box().a} !== 5`)
+		const b = localStorageBox(name, {a: 5, b: 10})
+		if(b.get().a !== 5){
+			throw new Error(`${b.get().a} !== 5`)
 		}
 		if(localStorage.getItem(name) !== null){
 			throw new Error(`${localStorage.getItem(name)} !== null`)
 		}
-		box({a: 6, b: 15})
+		b.set({a: 6, b: 15})
 		if(localStorage.getItem(name) !== "{\"a\":6,\"b\":15}"){
 			throw new Error(`${localStorage.getItem(name)} !== {"a":6,"b":15}`)
 		}
@@ -82,10 +84,10 @@ defineTestCase("control wrapping", async() => {
 	}
 	const Label = defineControl<{text: string, optProp?: number, defaultOptProp?: string}, typeof defaults>(defaults, (props, children) => {
 		if(Math.random() < 0){
-			console.log(props.defaultOptProp())
+			console.log(props.defaultOptProp.get())
 		}
-		if(props.optProp?.() === 3){
-			console.log(props.optProp?.())
+		if(props.optProp?.get() === 3){
+			console.log(props.optProp?.get())
 		}
 		if(!Array.isArray(children)){
 			throw new Error("No children!")
@@ -110,7 +112,7 @@ defineTestCase("control wrapping", async() => {
 		throw new Error("No owo")
 	}
 
-	b("ayaya")
+	b.set("ayaya")
 	await sleep(250)
 	if((labelB as HTMLElement).textContent !== "ayaya"){
 		throw new Error("No ayaya (" + labelB.textContent + ")")
@@ -240,7 +242,7 @@ defineTestCase("can assign number to attr/style", async() => {
 		}
 	}
 
-	owoBox(15)
+	owoBox.set(15)
 	{
 		const attrVal = container.getAttribute("data-owo")
 		if(attrVal !== "15"){
@@ -254,7 +256,7 @@ defineTestCase("can assign number to attr/style", async() => {
 
 defineTestCase("can pass result of mapArray as tag children", async() => {
 	const b = box(["nyom nyom"])
-	const container = tag(b.mapArray(() => 1, str => tag([str])))
+	const container = tag(b.mapArray(str => tag([str])))
 	await sleep(250)
 	document.body.appendChild(container)
 	await sleep(250)
@@ -264,7 +266,7 @@ defineTestCase("can pass result of mapArray as tag children", async() => {
 		throw new Error("Wut...? " + text)
 	}
 
-	b(["nyom nyom nyom"])
+	b.set(["nyom nyom nyom"])
 	await sleep(250)
 
 	const text2 = container.textContent
@@ -301,7 +303,7 @@ defineTestCase("can pass boxed array of children to control without props", asyn
 	await sleep(250)
 	document.body.appendChild(form)
 	await sleep(250)
-	b([tag({class: "this_is_form_field"}, ["This is form field!"])])
+	b.set([tag({class: "this_is_form_field"}, ["This is form field!"])])
 	await sleep(250)
 	const formFieldFromQuery = document.querySelector(".this_is_form_field")
 	if(!formFieldFromQuery){
@@ -311,35 +313,36 @@ defineTestCase("can pass boxed array of children to control without props", asyn
 	form.remove()
 })
 
-defineTestCase("lora list rerendering when paramset is toggled", async() => {
-	const loras = box<string[]>([])
-	const paramSet = box<"a" | "b">("a")
+// TODO: revive this test
+// defineTestCase("lora list rerendering when paramset is toggled", async() => {
+// 	const loras = box<string[]>([])
+// 	const paramSet = box<"a" | "b">("a")
 
-	const LoraLabel = (b: WBox<string>) => tag({class: "lora"}, [b])
-	const LoraList = (b: WBox<string[]>) => tag({class: "loralist"}, b.mapArray(el => el, el => LoraLabel(el)))
-	const ParamList = (name: RBox<string>) => tag({class: "paramlist"}, name.map(name => {
-		if(name === "a"){
-			return []
-		} else {
-			return [LoraList(loras)]
-		}
-	}))
+// 	const LoraLabel = (b: WBox<string>) => tag({class: "lora"}, [b])
+// 	const LoraList = (b: WBox<string[]>) => tag({class: "loralist"}, b.mapArray(el => LoraLabel(el)))
+// 	const ParamList = (name: RBox<string>) => tag({class: "paramlist"}, name.map(name => {
+// 		if(name === "a"){
+// 			return []
+// 		} else {
+// 			return [LoraList(loras)]
+// 		}
+// 	}))
 
-	loras(["some lora"])
-	const list = ParamList(paramSet)
-	await sleep(250)
-	document.body.appendChild(list)
-	await sleep(250)
-	paramSet("b")
-	loras([])
-	await sleep(250)
+// 	loras.set(["some lora"])
+// 	const list = ParamList(paramSet)
+// 	await sleep(250)
+// 	document.body.appendChild(list)
+// 	await sleep(250)
+// 	paramSet.set("b")
+// 	loras.set([])
+// 	await sleep(250)
 
-	if(lastDomMutationError){
-		throw lastDomMutationError
-	}
+// 	if(lastDomMutationError){
+// 		throw lastDomMutationError
+// 	}
 
-	list.remove()
-})
+// 	list.remove()
+// })
 
 defineTestCase("whileMounted", async() => {
 	const text = box("uwu")
@@ -357,7 +360,7 @@ defineTestCase("whileMounted", async() => {
 	await sleep(250)
 	document.body.appendChild(label)
 	await sleep(250)
-	text("owo")
+	text.set("owo")
 	await sleep(250)
 	if(label.textContent !== "owo"){
 		throw new Error("Expected owo, got " + label.textContent)

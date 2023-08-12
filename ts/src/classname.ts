@@ -14,6 +14,7 @@ export function makeClassname(binder: Binder | null, node: Node, parts: ClassNam
 			for(const key in item){
 				const bool = item[key]
 				if(isRBox(bool)){
+					// TODO: use watchAndRun here as well...?
 					(binder ||= getBinder(node)).watch(bool, makeClassnameAndCallTheCallback)
 				}
 			}
@@ -23,7 +24,7 @@ export function makeClassname(binder: Binder | null, node: Node, parts: ClassNam
 	function makeClassnameAndCallTheCallback() {
 		const result = []
 		for(const item of arr){
-			if(item && typeof(item) === "object"){
+			if(item && typeof(item) === "object" && !isRBox(item)){
 				for(const classname in item){
 					if(unbox(item[classname])){
 						result.push(classname)

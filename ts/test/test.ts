@@ -26,13 +26,13 @@ function renderTester(tester: () => void | Promise<void>): HTMLElement {
 	(async() => {
 		try {
 			await Promise.resolve(tester())
-			testResult(true)
+			testResult.set(true)
 		} catch(e){
 			if(!(e instanceof Error)){
 				throw e
 			}
 			console.error(e)
-			testResult(e)
+			testResult.set(e)
 		}
 	})()
 

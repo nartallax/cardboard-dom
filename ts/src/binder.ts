@@ -23,7 +23,7 @@ interface WatchedBox<T = unknown>{
 	readonly box: RBox<T>
 	handler(value: T): void
 	lastKnownValue: T | NoValue
-	unsub: (() => void) | null
+	handlerWrap: null | ((value: T) => void)
 }
 
 export class BinderImpl implements Binder {
@@ -68,13 +68,13 @@ export class BinderImpl implements Binder {
 				// but the updates to the DOM tree are asynchronous
 				// so, when update is here already, box that was subscribed to in render phase can be detached already
 				try {
-					const value = box.box()
+					const value = box.box.get()
 					if(box.lastKnownValue !== value){
 						this.invokeBoxHandler(value, box)
 					}
 					this.subToBox(box)
 				} catch(e){
-					box.unsub = () => {/* noop */}
+					box.handlerWrap = () => {/* noop */}
 					console.warn("Box update error ignored: " + e)
 				}
 			}
@@ -89,7 +89,10 @@ export class BinderImpl implements Binder {
 		if(boxes){
 			for(let i = 0; i < boxes.length; i++){
 				const box = boxes[i]!
-				box.unsub!()
+				if(box.handlerWrap){
+					// TODO: why are we not null-ing unsub fn here?
+					box.box.unsubscribe(box.handlerWrap)
+				}
 			}
 		}
 
@@ -102,7 +105,9 @@ export class BinderImpl implements Binder {
 	}
 
 	private subToBox(box: WatchedBox): void {
-		box.unsub = box.box.subscribe(v => this.invokeBoxHandler(v, box))
+		// TODO: cringe
+		box.handlerWrap = v => this.invokeBoxHandler(v, box)
+		box.box.subscribe(box.handlerWrap)
 	}
 
 	private _subscribe<T>(box: RBox<T>, handler: (value: T) => void): {unsub(): void, watchedBox: WatchedBox} {
@@ -110,7 +115,7 @@ export class BinderImpl implements Binder {
 			box,
 			handler,
 			lastKnownValue: noValue,
-			unsub: null
+			handlerWrap: null
 		}
 		if(this.isInDom){
 			this.subToBox(watchedBox)
@@ -130,7 +135,7 @@ export class BinderImpl implements Binder {
 
 	watchAndRun<T>(box: RBox<T>, handler: (value: T) => void): () => void {
 		const {unsub, watchedBox} = this._subscribe(box, handler)
-		this.invokeBoxHandler(box(), watchedBox)
+		this.invokeBoxHandler(box.get(), watchedBox)
 		return unsub
 	}
 

@@ -5,6 +5,8 @@ type LocalStorageBoxParams<T> = {
 	serialize: (x: T) => string
 }
 
+// TODO: rewrite in favor of dom binder or something more generic
+// use-cases: setting css variable, local storage, binding to url parts
 export function localStorageBox<T>(name: string): WBox<T | undefined>
 export function localStorageBox<T>(name: string, defaultValue: T): WBox<T>
 export function localStorageBox<T>(name: string, defaultValue: T, params: LocalStorageBoxParams<T>): WBox<T>
