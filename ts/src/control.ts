@@ -1,4 +1,5 @@
 import {HTMLChildArray} from "src/functions/html_tag"
+import {SVGChildArray} from "src/functions/svg_tag"
 
 type Renderer<Props> = (props: Props, children: HTMLChildArray) => HTMLElement
 type PropsOf<F> = F extends Renderer<infer P> ? P : never
@@ -6,17 +7,17 @@ type PropsAllOptional<F, IfTrue, IfFalse> = Record<string, never> extends PropsO
 type HasTwoArguments<F, IfTrue, IfFalse> = ((a: any, b: any) => any) extends F ? IfTrue : IfFalse
 type HasOneArgument<F, IfTrue, IfFalse> = ((a: any) => any) extends F ? IfTrue : IfFalse
 
-type ControlDef<F> = HasTwoArguments<F,
+type ControlDef<C, R, F> = HasTwoArguments<F,
 PropsAllOptional<F,
-((children?: HTMLChildArray) => HTMLElement) & ((props: PropsOf<F>, children?: HTMLChildArray) => HTMLElement),
-(props: PropsOf<F>, children?: HTMLChildArray) => HTMLElement
+((children?: C) => R) & ((props: PropsOf<F>, children?: C) => R),
+(props: PropsOf<F>, children?: C) => R
 >,
 PropsAllOptional<F,
 HasOneArgument<F,
-(props?: PropsOf<F>) => HTMLElement,
-() => HTMLElement
+(props?: PropsOf<F>) => R,
+() => R
 >,
-(props: PropsOf<F>) => HTMLElement
+(props: PropsOf<F>) => R
 >>
 
 // types are a bit weird here, but that way it kinda works
@@ -26,11 +27,11 @@ HasOneArgument<F,
 /** Wrap a function that renders some markup
  * This wrap allows to pass arguments easier (i.e. you can omit props if they are all optional etc)
  * First argument of render function, if present, must be props (which may be `unknown` if you don't need anything) */
-export function defineControl<F extends (props: any, children: HTMLChildArray) => HTMLElement>(renderer: F): ControlDef<F> {
+const defineControlBase = <C, R, F extends (props: any, children: C) => R>(renderer: F): ControlDef<C, R, F> => {
 	const expectsProps = renderer.length > 0
 	const expectsChildren = renderer.length > 1
 
-	const controlWrap = (propsOrChildren?: any, mbChildren?: any): HTMLElement => {
+	const controlWrap = (propsOrChildren?: any, mbChildren?: any): R => {
 		const firstArgIsChildren = Array.isArray(propsOrChildren)
 		const props = (firstArgIsChildren ? expectsProps ? {} : null : propsOrChildren)
 		const children = firstArgIsChildren ? propsOrChildren as HTMLChildArray : mbChildren
@@ -38,5 +39,13 @@ export function defineControl<F extends (props: any, children: HTMLChildArray) =
 		return renderer(props, expectsChildren ? (children ?? []) : children)
 	}
 
-	return controlWrap as ControlDef<F>
+	return controlWrap as ControlDef<C, R, F>
 }
+
+type HTMLControlDef<F> = ControlDef<HTMLChildArray, HTMLElement, F>
+export const defineControl = <F extends (props: any, children: HTMLChildArray) => HTMLElement>(renderer: F): HTMLControlDef<F> =>
+	defineControlBase<HTMLChildArray, HTMLElement, F>(renderer)
+
+type SVGControlDef<F> = ControlDef<SVGChildArray, SVGElement, F>
+export const defineSvgControl = <F extends (props: any, children: SVGChildArray) => SVGElement>(renderer: F): SVGControlDef<F> =>
+	defineControlBase<SVGChildArray, SVGElement, F>(renderer)

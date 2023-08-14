@@ -374,3 +374,139 @@ defineTestCase("containerTag passes wbox to a child", () => {
 
 	container.remove()
 })
+
+defineTestCase("monkeypatching subs", () => {
+
+	const parent = tag()
+	document.body.appendChild(parent)
+
+	const b = box("uwu")
+	const child = tag([b])
+
+	const makeChecker = (fn: unknown) => (a: unknown, b: unknown) => {
+		if(a !== b){
+			throw new Error(`Check for ${fn} failed: ${a} !== ${b}`)
+		}
+	}
+
+	function expectSub(cb: () => void): void {
+		const check = makeChecker(cb)
+		const oldElText = child.textContent
+		const oldBoxText = b.get()
+		check(oldBoxText, oldElText)
+
+		b.set(oldBoxText + oldBoxText)
+		check(child.textContent, oldBoxText)
+
+		cb()
+		check(child.textContent, oldBoxText + oldBoxText)
+
+		b.set(oldBoxText)
+		check(child.textContent, oldBoxText)
+
+		parent.replaceChildren() // remove everything
+
+		b.set(oldBoxText + oldBoxText)
+		check(child.textContent, oldBoxText)
+
+		b.set(oldBoxText)
+	}
+
+	expectSub(() => parent.appendChild(child))
+	expectSub(() => {
+		const anotherChild = tag()
+		parent.appendChild(anotherChild)
+		parent.replaceChild(child, anotherChild)
+	})
+	expectSub(() => parent.append(child))
+	expectSub(() => parent.prepend(child))
+	expectSub(() => {
+		const anotherChild = tag()
+		parent.appendChild(anotherChild)
+		parent.insertBefore(child, anotherChild)
+	})
+	expectSub(() => {
+		const anotherChild = tag()
+		parent.appendChild(anotherChild)
+		anotherChild.replaceWith(child)
+	})
+	expectSub(() => {
+		const anotherChild = tag()
+		parent.appendChild(anotherChild)
+		anotherChild.insertAdjacentElement("afterend", child)
+	})
+	expectSub(() => {
+		const anotherChild = tag()
+		parent.appendChild(anotherChild)
+		anotherChild.after(child)
+	})
+	expectSub(() => {
+		const anotherChild = tag()
+		parent.appendChild(anotherChild)
+		anotherChild.before(child)
+	})
+	expectSub(() => parent.replaceChildren(child))
+})
+
+defineTestCase("monkeypatching unsubs", () => {
+	const parent = tag()
+	document.body.appendChild(parent)
+
+	const b = box("uwu")
+	const child = tag([b])
+	parent.appendChild(child)
+
+	const makeChecker = (fn: unknown) => {
+		let count = 0
+		return (a: unknown, b: unknown) => {
+			count++
+			if(a !== b){
+				throw new Error(`${count}th check for ${fn} failed: ${a} !== ${b}`)
+			}
+		}
+	}
+
+	function expectUnsub(cb: () => void): void {
+		const check = makeChecker(cb)
+		const oldElText = child.textContent
+		const oldBoxText = b.get()
+		check(oldBoxText, oldElText)
+
+		b.set(oldBoxText + oldBoxText)
+		check(child.textContent, oldBoxText + oldBoxText)
+
+		cb()
+		check(child.textContent, oldBoxText + oldBoxText)
+
+		b.set(oldBoxText)
+		check(child.textContent, oldBoxText + oldBoxText)
+
+		document.body.appendChild(parent)
+		parent.replaceChildren(child) // remove everything
+
+		check(child.textContent, oldBoxText)
+		b.set(oldBoxText + oldBoxText)
+		check(child.textContent, oldBoxText + oldBoxText)
+
+		b.set(oldBoxText)
+		check(child.textContent, oldBoxText)
+	}
+
+	expectUnsub(() => parent.removeChild(child))
+	expectUnsub(() => child.remove())
+	expectUnsub(() => {
+		const anotherChild = tag()
+		child.replaceWith(anotherChild)
+	})
+	expectUnsub(() => parent.replaceChildren())
+	expectUnsub(() => {
+		const anotherChild = tag()
+		parent.replaceChild(anotherChild, child)
+	})
+	expectUnsub(() => (parent as any).setHTML(""))
+	expectUnsub(() => parent.innerHTML = "")
+	expectUnsub(() => parent.textContent = "")
+	expectUnsub(() => parent.outerHTML = "")
+
+	parent.remove()
+})

@@ -178,9 +178,9 @@ function monkeyPatchMethod(
 function monkeyPatchSetter(name: string, makePatch: (original: any) => any): void {
 	for(const cls of patchableClasses){
 		try {
-			const originalProp = Object.getOwnPropertyDescriptor(Element.prototype, name)
+			const originalProp = Object.getOwnPropertyDescriptor(cls.prototype, name)
 			if(!originalProp || typeof(originalProp.set) !== "function"){
-				return
+				continue
 			}
 			const patchedSetter = makePatch(originalProp.set)
 			Object.defineProperty(cls.prototype, name, {
