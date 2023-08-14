@@ -201,6 +201,7 @@ export function bindChildArrayToTag<T, K>(parent: Node, childItems: RBox<readonl
 	const keyToChildMap = new Map<unknown, Node>()
 	watchAndRun(null, parent, childItems, childItems => {
 		const newChildArray: Node[] = new Array(childItems.length)
+		const outdatedKeys = new Set(keyToChildMap.keys())
 		for(let i = 0; i < childItems.length; i++){
 			const childItem = childItems[i]!
 			const key = getKey(childItem, i)
@@ -211,7 +212,13 @@ export function bindChildArrayToTag<T, K>(parent: Node, childItems: RBox<readonl
 				keyToChildMap.set(key, child)
 			}
 			newChildArray[i] = child
+			outdatedKeys.delete(key)
 		}
+
+		for(const outdatedKey of outdatedKeys){
+			keyToChildMap.delete(outdatedKey)
+		}
+
 		updateChildren(parent, newChildArray)
 	})
 }

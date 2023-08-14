@@ -63,10 +63,10 @@ function getHtmlChildContent(content: string | number | boolean | null | undefin
 
 }
 
-export function containerTag<T, K, N extends keyof HTMLElementTagNameMap = "div">(childItems: RBox<readonly T[]>, getKey: (item: T, index: number) => K, renderChild: (item: RBox<T>) => HTMLElement): HTMLElementTagNameMap[N]
 export function containerTag<T, K, N extends keyof HTMLElementTagNameMap = "div">(childItems: WBox<readonly T[]>, getKey: (item: T, index: number) => K, renderChild: (item: WBox<T>) => HTMLElement): HTMLElementTagNameMap[N]
-export function containerTag<T, K, N extends keyof HTMLElementTagNameMap = "div">(description: HTMLTagDescription<N>, childItems: RBox<readonly T[]>, getKey: (item: T, index: number) => K, renderChild: (item: RBox<T>) => HTMLElement): HTMLElementTagNameMap[N]
+export function containerTag<T, K, N extends keyof HTMLElementTagNameMap = "div">(childItems: RBox<readonly T[]>, getKey: (item: T, index: number) => K, renderChild: (item: RBox<T>) => HTMLElement): HTMLElementTagNameMap[N]
 export function containerTag<T, K, N extends keyof HTMLElementTagNameMap = "div">(description: HTMLTagDescription<N>, childItems: WBox<readonly T[]>, getKey: (item: T, index: number) => K, renderChild: (item: WBox<T>) => HTMLElement): HTMLElementTagNameMap[N]
+export function containerTag<T, K, N extends keyof HTMLElementTagNameMap = "div">(description: HTMLTagDescription<N>, childItems: RBox<readonly T[]>, getKey: (item: T, index: number) => K, renderChild: (item: RBox<T>) => HTMLElement): HTMLElementTagNameMap[N]
 export function containerTag(a: any, b: any, c: any, d?: any): HTMLElement {
 	const [description, childItems, getKey, renderChild] = resolveContainerTagCreationArgs<HTMLTagDescription>(a, b, c, d)
 	const result = tag(description)

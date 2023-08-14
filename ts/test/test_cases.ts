@@ -1,4 +1,5 @@
-import {box} from "@nartallax/cardboard"
+import {RBox, WBox, box, viewBox} from "@nartallax/cardboard"
+import {defineControl} from "src/control"
 import {whileMounted} from "src/functions/base_tag"
 import {containerTag, tag} from "src/functions/html_tag"
 import {svgTag} from "src/functions/svg_tag"
@@ -84,51 +85,6 @@ defineTestCase("local storage box", async() => {
 	}
 })
 
-// TODO: revive, or delete
-// defineTestCase("control wrapping", async() => {
-// 	const defaults = {
-// 		defaultOptProp: "uwu"
-// 	}
-// 	const Label = defineControl<{text: string, optProp?: number, defaultOptProp?: string}, typeof defaults>(defaults, (props, children) => {
-// 		if(Math.random() < 0){
-// 			console.log(props.defaultOptProp.get())
-// 		}
-// 		if(props.optProp?.get() === 3){
-// 			console.log(props.optProp?.get())
-// 		}
-// 		if(!Array.isArray(children)){
-// 			throw new Error("No children!")
-// 		}
-// 		return tag({class: "test-label"}, [props.text, ...children])
-// 	})
-
-// 	const labelA = Label({text: "uwu"})
-// 	const b = box("owo")
-// 	const labelB = Label({text: b})
-
-// 	await sleep(250)
-
-// 	document.body.appendChild(labelA)
-// 	document.body.appendChild(labelB)
-
-// 	if(labelA.textContent !== "uwu"){
-// 		throw new Error("No uwu")
-// 	}
-
-// 	if(labelB.textContent !== "owo"){
-// 		throw new Error("No owo")
-// 	}
-
-// 	b.set("ayaya")
-// 	await sleep(250)
-// 	if((labelB as HTMLElement).textContent !== "ayaya"){
-// 		throw new Error("No ayaya (" + labelB.textContent + ")")
-// 	}
-
-// 	labelA.remove()
-// 	labelB.remove()
-// })
-
 defineTestCase("null child among non-nulls", async() => {
 	const childA = tag(["non-null child"])
 	const childB = null
@@ -185,35 +141,6 @@ defineTestCase("can pass a box of null as child", async() => {
 	}
 	container.remove()
 })
-
-// TODO: revive or delete
-// defineTestCase("can omit props if they can be empty", async() => {
-// 	const ctrl = defineControl<{opt?: string}>(props => {
-// 		return tag([props.opt ?? "uwu"])
-// 	})
-// 	const el = ctrl()
-
-// 	const defaults = {value: "owo"}
-// 	const ctrl2 = defineControl<{value?: string}, typeof defaults>(defaults, props => tag([props.value]))
-// 	const el2 = ctrl2()
-
-// 	await sleep(250)
-// 	document.body.appendChild(el)
-// 	document.body.appendChild(el2)
-// 	await sleep(250)
-
-// 	const text = el.textContent
-// 	if(text !== "uwu"){
-// 		throw new Error("Wut...? " + text)
-// 	}
-// 	el.remove()
-
-// 	const text2 = el2.textContent
-// 	if(text2 !== "owo"){
-// 		throw new Error("Wut...? " + text2)
-// 	}
-// 	el2.remove()
-// })
 
 defineTestCase("can assign number to attr/style", async() => {
 	const owoBox = box(10)
@@ -277,58 +204,28 @@ defineTestCase("can pass svg as child of div", async() => {
 	container.remove()
 })
 
-// TODO: revive or delete
-// defineTestCase("can pass boxed array of children to control without props", async() => {
-// 	const Form = defineControl<Record<string, unknown>>((_, children) => {
-// 		return tag({class: "form"}, children)
-// 	})
+defineTestCase("lora list rerendering when paramset is toggled", async() => {
+	const loras = box<string[]>([])
+	const paramSet = box<"a" | "b">("a")
 
-// 	const b = box<HTMLElement[]>([])
+	const LoraLabel = (b: RBox<string>) => tag({class: "lora"}, [b])
+	const LoraList = (b: RBox<string[]>) => containerTag({class: "loralist"}, b, x => x, x => LoraLabel(x))
+	const ParamList = (name: RBox<string>) => {
+		const loraList = viewBox(() => name.get() === "a" ? [] : loras.get())
+		return LoraList(loraList)
+	}
 
-// 	const form = Form(b)
-// 	await sleep(250)
-// 	document.body.appendChild(form)
-// 	await sleep(250)
-// 	b.set([tag({class: "this_is_form_field"}, ["This is form field!"])])
-// 	await sleep(250)
-// 	const formFieldFromQuery = document.querySelector(".this_is_form_field")
-// 	if(!formFieldFromQuery){
-// 		throw new Error("Children not updated")
-// 	}
+	loras.set(["some lora"])
+	const list = ParamList(paramSet)
+	await sleep(250)
+	document.body.appendChild(list)
+	await sleep(250)
+	paramSet.set("b")
+	loras.set([])
+	await sleep(250)
 
-// 	form.remove()
-// })
-
-// TODO: revive this test
-// defineTestCase("lora list rerendering when paramset is toggled", async() => {
-// 	const loras = box<string[]>([])
-// 	const paramSet = box<"a" | "b">("a")
-
-// 	const LoraLabel = (b: WBox<string>) => tag({class: "lora"}, [b])
-// 	const LoraList = (b: WBox<string[]>) => tag({class: "loralist"}, b.mapArray(el => LoraLabel(el)))
-// 	const ParamList = (name: RBox<string>) => tag({class: "paramlist"}, name.map(name => {
-// 		if(name === "a"){
-// 			return []
-// 		} else {
-// 			return [LoraList(loras)]
-// 		}
-// 	}))
-
-// 	loras.set(["some lora"])
-// 	const list = ParamList(paramSet)
-// 	await sleep(250)
-// 	document.body.appendChild(list)
-// 	await sleep(250)
-// 	paramSet.set("b")
-// 	loras.set([])
-// 	await sleep(250)
-
-// 	if(lastDomMutationError){
-// 		throw lastDomMutationError
-// 	}
-
-// 	list.remove()
-// })
+	list.remove()
+})
 
 defineTestCase("whileMounted", async() => {
 	const text = box("uwu")
@@ -352,4 +249,128 @@ defineTestCase("whileMounted", async() => {
 		throw new Error("Expected owo, got " + label.textContent)
 	}
 	label.remove()
+})
+
+defineTestCase("can define generic control", () => {
+	const numericInput = defineControl(<T extends number>(props: {value: WBox<T>, defaultValue?: T}) => {
+		const input = tag({tag: "input"})
+		input.value = props.value.get() + ""
+		return input
+	})
+
+	const inputA = numericInput({value: box<5>(5)})
+	const inputB = numericInput({value: box(6)})
+
+	// should not work: control does not accept children
+	// const inputC = numericInput({value: box(6)}, [])
+	// should not work: control has required arguments
+	// const inputC = numericInput()
+
+	if((inputA as any).value !== "5" || (inputB as any).value !== "6"){
+		throw new Error("Bad value")
+	}
+})
+
+defineTestCase("can define container-only control", () => {
+	const container = defineControl((_: unknown, children) => {
+		return tag(children)
+	})
+
+	const el = container(["uwu", "owo"])
+	if(el.textContent !== "uwuowo"){
+		throw new Error("Unexpected text content")
+	}
+})
+
+defineTestCase("can define container-with-props control", () => {
+	const container = defineControl((props: {type?: string}, children) => {
+		return tag({attrs: {"data-type": props.type ?? "dflt-type"}}, children)
+	})
+
+	const a = container(["uwu"])
+	const b = container({type: "owo"})
+	const c = container({type: "ayaya"}, ["ayaya"])
+	if(a.getAttribute("data-type") !== "dflt-type"
+	|| a.textContent !== "uwu"
+	|| b.getAttribute("data-type") !== "owo"
+	|| c.getAttribute("data-type") !== "ayaya"
+	|| c.textContent !== "ayaya"){
+		throw new Error("Something borken uwu")
+	}
+})
+
+defineTestCase("can define control without children and props", () => {
+	const knob = defineControl(() => tag({class: "knob"}))
+	const a = knob()
+	if(a.className !== "knob"){
+		throw new Error("Wrong classname")
+	}
+})
+
+defineTestCase("containerTag updates by data", async() => {
+	const a = {id: "a", name: "a"}
+	const b = {id: "b", name: "b"}
+	const c = {id: "c", name: "c"}
+	const data = box([a, b, c])
+
+	let count = 0
+	const container = containerTag(
+		data,
+		item => item.id,
+		item => tag({attrs: {"data-index": count++}}, [item.prop("name")])
+	)
+	await sleep(10)
+	document.body.appendChild(container)
+
+	function checkChildren(expected: [number, string][]): void {
+		for(let i = 0; i < container.children.length; i++){
+			const child = container.children[i]!
+			const [index, text] = expected[i]!
+			if(child.textContent !== text || child.getAttribute("data-index") !== index + ""){
+				throw new Error(`Wrong child at ${i}: expected index=${index} and text=${text}, got index=${child.getAttribute("data-index")} and text=${child.textContent}`)
+			}
+		}
+	}
+
+	checkChildren([[0, "a"], [1, "b"], [2, "c"]])
+
+	data.set([c, b, a])
+	checkChildren([[2, "c"], [1, "b"], [0, "a"]])
+
+	data.set([c, {...b, name: "bbb"}, a])
+	checkChildren([[2, "c"], [1, "bbb"], [0, "a"]])
+
+	data.set([c, a])
+	checkChildren([[2, "c"], [0, "a"]])
+	data.set([b, c, a])
+	checkChildren([[3, "b"], [2, "c"], [0, "a"]])
+
+	container.remove()
+})
+
+defineTestCase("containerTag passes wbox to a child", () => {
+	const a = {id: "a", name: "a"}
+	const b = {id: "b", name: "b"}
+	const c = {id: "c", name: "c"}
+	const data = box([a, b, c])
+
+	const boxes: WBox<string>[] = []
+
+	const container = containerTag(
+		data,
+		item => item.id,
+		item => {
+			const propBox = item.prop("name")
+			boxes.push(propBox)
+			return tag([propBox])
+		}
+	)
+	document.body.appendChild(container)
+
+	boxes[1]?.set("uwu")
+	if(container.textContent !== "auwuc"){
+		throw new Error("Wrong text")
+	}
+
+	container.remove()
 })
