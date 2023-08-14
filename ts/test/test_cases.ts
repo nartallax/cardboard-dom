@@ -1,8 +1,8 @@
 import {box} from "@nartallax/cardboard"
-import {isInDOM} from "src/binder"
-import {defineControl} from "src/control"
+import {whileMounted} from "src/functions/base_tag"
+import {containerTag, tag} from "src/functions/html_tag"
+import {svgTag} from "src/functions/svg_tag"
 import {localStorageBox} from "src/local_storage_box"
-import {svgTag, tag, whileMounted} from "src/tag"
 
 export const testCases: {name: string, tester(): void | Promise<void>}[] = []
 
@@ -24,14 +24,14 @@ defineTestCase("update DOM when box changes", async() => {
 })
 
 defineTestCase("unsubscribe from box when element is removed from DOM", async() => {
-	const b = box("test")
+	const b = box("test1")
 	let callsCount = 0
 	const calcBox = b.map(a => {
 		callsCount++
-		return a + "!"
+		return a + callsCount + "!"
 	})
 
-	const element = tag({style: {display: "none"}}, [calcBox])
+	const element = tag([calcBox])
 	if(callsCount !== 1){
 		throw new Error("Expected 1 call, got " + callsCount)
 	}
@@ -51,7 +51,13 @@ defineTestCase("unsubscribe from box when element is removed from DOM", async() 
 		throw new Error("Expected 3 calls, got " + callsCount)
 	}
 	element.remove()
+	if(callsCount as unknown !== 3){
+		throw new Error("Expected 3 calls, got " + callsCount)
+	}
 	await sleep(250)
+	if(callsCount as unknown !== 3){
+		throw new Error("Expected 3 calls, got " + callsCount)
+	}
 
 	b.set("test4")
 	if(callsCount as unknown !== 3){
@@ -78,49 +84,50 @@ defineTestCase("local storage box", async() => {
 	}
 })
 
-defineTestCase("control wrapping", async() => {
-	const defaults = {
-		defaultOptProp: "uwu"
-	}
-	const Label = defineControl<{text: string, optProp?: number, defaultOptProp?: string}, typeof defaults>(defaults, (props, children) => {
-		if(Math.random() < 0){
-			console.log(props.defaultOptProp.get())
-		}
-		if(props.optProp?.get() === 3){
-			console.log(props.optProp?.get())
-		}
-		if(!Array.isArray(children)){
-			throw new Error("No children!")
-		}
-		return tag({class: "test-label"}, [props.text, ...children])
-	})
+// TODO: revive, or delete
+// defineTestCase("control wrapping", async() => {
+// 	const defaults = {
+// 		defaultOptProp: "uwu"
+// 	}
+// 	const Label = defineControl<{text: string, optProp?: number, defaultOptProp?: string}, typeof defaults>(defaults, (props, children) => {
+// 		if(Math.random() < 0){
+// 			console.log(props.defaultOptProp.get())
+// 		}
+// 		if(props.optProp?.get() === 3){
+// 			console.log(props.optProp?.get())
+// 		}
+// 		if(!Array.isArray(children)){
+// 			throw new Error("No children!")
+// 		}
+// 		return tag({class: "test-label"}, [props.text, ...children])
+// 	})
 
-	const labelA = Label({text: "uwu"})
-	const b = box("owo")
-	const labelB = Label({text: b})
+// 	const labelA = Label({text: "uwu"})
+// 	const b = box("owo")
+// 	const labelB = Label({text: b})
 
-	await sleep(250)
+// 	await sleep(250)
 
-	document.body.appendChild(labelA)
-	document.body.appendChild(labelB)
+// 	document.body.appendChild(labelA)
+// 	document.body.appendChild(labelB)
 
-	if(labelA.textContent !== "uwu"){
-		throw new Error("No uwu")
-	}
+// 	if(labelA.textContent !== "uwu"){
+// 		throw new Error("No uwu")
+// 	}
 
-	if(labelB.textContent !== "owo"){
-		throw new Error("No owo")
-	}
+// 	if(labelB.textContent !== "owo"){
+// 		throw new Error("No owo")
+// 	}
 
-	b.set("ayaya")
-	await sleep(250)
-	if((labelB as HTMLElement).textContent !== "ayaya"){
-		throw new Error("No ayaya (" + labelB.textContent + ")")
-	}
+// 	b.set("ayaya")
+// 	await sleep(250)
+// 	if((labelB as HTMLElement).textContent !== "ayaya"){
+// 		throw new Error("No ayaya (" + labelB.textContent + ")")
+// 	}
 
-	labelA.remove()
-	labelB.remove()
-})
+// 	labelA.remove()
+// 	labelB.remove()
+// })
 
 defineTestCase("null child among non-nulls", async() => {
 	const childA = tag(["non-null child"])
@@ -128,7 +135,7 @@ defineTestCase("null child among non-nulls", async() => {
 	const container = tag([childA, childB])
 	await sleep(250)
 	document.body.appendChild(container)
-	if(!isInDOM(childA)){
+	if(!childA.isConnected){
 		throw new Error("child A is not in DOM")
 	}
 	container.remove()
@@ -137,16 +144,16 @@ defineTestCase("null child among non-nulls", async() => {
 defineTestCase("tag don't invoke child map more times than needed", async() => {
 	const data = box([1, 2, 3])
 	let invokeCount = 0
-	const container = tag(data.map(src => {
+	const container = containerTag(data, x => x, num => {
 		invokeCount++
-		return src.map(num => tag([num + ""]))
-	}))
+		return tag([num + ""])
+	})
 
 	await sleep(250)
 	document.body.appendChild(container)
 	await sleep(250)
 
-	if(invokeCount !== 1){
+	if(invokeCount !== 3){
 		throw new Error("Too many mapper calls: " + invokeCount)
 	}
 	container.remove()
@@ -179,33 +186,34 @@ defineTestCase("can pass a box of null as child", async() => {
 	container.remove()
 })
 
-defineTestCase("can omit props if they can be empty", async() => {
-	const ctrl = defineControl<{opt?: string}>(props => {
-		return tag([props.opt ?? "uwu"])
-	})
-	const el = ctrl()
+// TODO: revive or delete
+// defineTestCase("can omit props if they can be empty", async() => {
+// 	const ctrl = defineControl<{opt?: string}>(props => {
+// 		return tag([props.opt ?? "uwu"])
+// 	})
+// 	const el = ctrl()
 
-	const defaults = {value: "owo"}
-	const ctrl2 = defineControl<{value?: string}, typeof defaults>(defaults, props => tag([props.value]))
-	const el2 = ctrl2()
+// 	const defaults = {value: "owo"}
+// 	const ctrl2 = defineControl<{value?: string}, typeof defaults>(defaults, props => tag([props.value]))
+// 	const el2 = ctrl2()
 
-	await sleep(250)
-	document.body.appendChild(el)
-	document.body.appendChild(el2)
-	await sleep(250)
+// 	await sleep(250)
+// 	document.body.appendChild(el)
+// 	document.body.appendChild(el2)
+// 	await sleep(250)
 
-	const text = el.textContent
-	if(text !== "uwu"){
-		throw new Error("Wut...? " + text)
-	}
-	el.remove()
+// 	const text = el.textContent
+// 	if(text !== "uwu"){
+// 		throw new Error("Wut...? " + text)
+// 	}
+// 	el.remove()
 
-	const text2 = el2.textContent
-	if(text2 !== "owo"){
-		throw new Error("Wut...? " + text2)
-	}
-	el2.remove()
-})
+// 	const text2 = el2.textContent
+// 	if(text2 !== "owo"){
+// 		throw new Error("Wut...? " + text2)
+// 	}
+// 	el2.remove()
+// })
 
 defineTestCase("can assign number to attr/style", async() => {
 	const owoBox = box(10)
@@ -254,29 +262,6 @@ defineTestCase("can assign number to attr/style", async() => {
 	container.remove()
 })
 
-defineTestCase("can pass result of mapArray as tag children", async() => {
-	const b = box(["nyom nyom"])
-	const container = tag(b.mapArray(str => tag([str])))
-	await sleep(250)
-	document.body.appendChild(container)
-	await sleep(250)
-
-	const text = container.textContent
-	if(text !== "nyom nyom"){
-		throw new Error("Wut...? " + text)
-	}
-
-	b.set(["nyom nyom nyom"])
-	await sleep(250)
-
-	const text2 = container.textContent
-	if(text2 !== "nyom nyom nyom"){
-		throw new Error("Wut...? " + text)
-	}
-
-	container.remove()
-})
-
 defineTestCase("can pass svg as child of div", async() => {
 	const svg = svgTag({tag: "svg"}, [svgTag({tag: "path", attrs: {d: "M150 0 L75 200 L225 200 Z"}})])
 	const container = tag([svg])
@@ -292,26 +277,27 @@ defineTestCase("can pass svg as child of div", async() => {
 	container.remove()
 })
 
-defineTestCase("can pass boxed array of children to control without props", async() => {
-	const Form = defineControl((_, children) => {
-		return tag({class: "form"}, children)
-	})
+// TODO: revive or delete
+// defineTestCase("can pass boxed array of children to control without props", async() => {
+// 	const Form = defineControl<Record<string, unknown>>((_, children) => {
+// 		return tag({class: "form"}, children)
+// 	})
 
-	const b = box<HTMLElement[]>([])
+// 	const b = box<HTMLElement[]>([])
 
-	const form = Form(b)
-	await sleep(250)
-	document.body.appendChild(form)
-	await sleep(250)
-	b.set([tag({class: "this_is_form_field"}, ["This is form field!"])])
-	await sleep(250)
-	const formFieldFromQuery = document.querySelector(".this_is_form_field")
-	if(!formFieldFromQuery){
-		throw new Error("Children not updated")
-	}
+// 	const form = Form(b)
+// 	await sleep(250)
+// 	document.body.appendChild(form)
+// 	await sleep(250)
+// 	b.set([tag({class: "this_is_form_field"}, ["This is form field!"])])
+// 	await sleep(250)
+// 	const formFieldFromQuery = document.querySelector(".this_is_form_field")
+// 	if(!formFieldFromQuery){
+// 		throw new Error("Children not updated")
+// 	}
 
-	form.remove()
-})
+// 	form.remove()
+// })
 
 // TODO: revive this test
 // defineTestCase("lora list rerendering when paramset is toggled", async() => {

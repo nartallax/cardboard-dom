@@ -105,6 +105,8 @@ module.exports = {
 		"@typescript-eslint/method-signature-style": ["off"],
 		"@typescript-eslint/no-confusing-non-null-assertion": ["warn"],
 		"@typescript-eslint/type-annotation-spacing": ["warn"],
+		// ffs, I am aware that any is bad, and if I use it - I have damn good reason for that
+		"@typescript-eslint/no-explicit-any": ["off"],
 		"@typescript-eslint/brace-style": ["warn", "1tbs"],
 		"@typescript-eslint/comma-dangle": ["warn", "never"],
 		"@typescript-eslint/comma-spacing": ["warn", {before: false, after: true}],
@@ -126,4 +128,5 @@ module.exports = {
 		"@typescript-eslint/space-before-function-paren": ["warn", "never"],
 		"@typescript-eslint/space-infix-ops": ["warn"]
 	}
+
 }

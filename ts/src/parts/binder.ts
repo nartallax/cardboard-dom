@@ -1,20 +1,4 @@
-import {DomMutationHandler} from "src/dom_mutation_handler"
 import {RBox} from "@nartallax/cardboard"
-import {makeNodeDataAttacher} from "src/node_data_attacher"
-
-/** Binder is a way to access various lifecycle events of DOM nodes
- * Through that it can help with subscription to various stuff like boxes */
-export interface Binder {
-	readonly isInDom: boolean
-
-	watch<T>(box: RBox<T>, handler: (value: T) => void): () => void
-	watchAndRun<T>(box: RBox<T>, handler: (value: T) => void): () => void
-
-	onInserted(handler: () => void): void
-	onRemoved(handler: () => void): void
-	offInserted(handler: () => void): void
-	offRemoved(handler: () => void): void
-}
 
 const noValue = Symbol("cardboard-dom-binder-no-value")
 type NoValue = typeof noValue
@@ -22,18 +6,20 @@ type NoValue = typeof noValue
 interface WatchedBox<T = unknown>{
 	readonly box: RBox<T>
 	handler(value: T): void
-	lastKnownValue: T | NoValue
 	handlerWrap: null | ((value: T) => void)
+	lastKnownValue: T | NoValue
 }
 
-export class BinderImpl implements Binder {
+/** Binder is a way to access various lifecycle events of DOM nodes
+ * Through that it can help with subscription to various stuff like boxes */
+export class Binder {
 	private insertedHandlers = null as null | (() => void)[]
 	private removedHandlers = null as null | (() => void)[]
 	private watchedBoxes = null as null | WatchedBox[]
 	isInDom: boolean
 
-	constructor(readonly el: Node) {
-		this.isInDom = isInDOM(el)
+	constructor(readonly node: Node) {
+		this.isInDom = node.isConnected
 	}
 
 	onInserted(handler: () => void): void {
@@ -52,7 +38,10 @@ export class BinderImpl implements Binder {
 		this.removedHandlers = dropItemFromArray(this.removedHandlers, handler)
 	}
 
-	fireNodeInserted(): void {
+	notifyBeforeInserted(): void {
+		if(this.isInDom){
+			return
+		}
 		this.isInDom = true
 		const boxes = this.watchedBoxes
 		if(boxes){
@@ -83,7 +72,10 @@ export class BinderImpl implements Binder {
 		fireAll(this.insertedHandlers)
 	}
 
-	fireNodeRemoved(): void {
+	notifyAfterRemoved(): void {
+		if(!this.isInDom){
+			return
+		}
 		this.isInDom = false
 		const boxes = this.watchedBoxes
 		if(boxes){
@@ -99,6 +91,19 @@ export class BinderImpl implements Binder {
 		fireAll(this.removedHandlers)
 	}
 
+	notifyAttachmentState(shouldBeAttached: boolean): void {
+		if(this.isInDom !== shouldBeAttached){
+			console.error(`A node was ${shouldBeAttached ? "inserted into" : "removed from"} DOM tree with unexpected method or property. This could result in memory leaks and/or inconsistent state. Please investigate and report an error.`, this.node)
+
+			// this really should be done synchronously
+			if(shouldBeAttached){
+				this.notifyBeforeInserted()
+			} else {
+				this.notifyAfterRemoved()
+			}
+		}
+	}
+
 	private invokeBoxHandler<T>(value: T, box: WatchedBox<T>): void {
 		box.handler(value)
 		box.lastKnownValue = value
@@ -110,7 +115,7 @@ export class BinderImpl implements Binder {
 		box.box.subscribe(box.handlerWrap)
 	}
 
-	private _subscribe<T>(box: RBox<T>, handler: (value: T) => void): {unsub(): void, watchedBox: WatchedBox} {
+	private subscribe<T>(box: RBox<T>, handler: (value: T) => void): {unsub(): void, watchedBox: WatchedBox} {
 		const watchedBox: WatchedBox = {
 			box,
 			handler,
@@ -130,32 +135,23 @@ export class BinderImpl implements Binder {
 	}
 
 	watch<T>(box: RBox<T>, handler: (value: T) => void): () => void {
-		return this._subscribe(box, handler).unsub
+		return this.subscribe(box, handler).unsub
 	}
 
 	watchAndRun<T>(box: RBox<T>, handler: (value: T) => void): () => void {
-		const {unsub, watchedBox} = this._subscribe(box, handler)
+		const {unsub, watchedBox} = this.subscribe(box, handler)
 		this.invokeBoxHandler(box.get(), watchedBox)
 		return unsub
 	}
 
-}
-
-const binderStorage = makeNodeDataAttacher<BinderImpl>("__binder_of_this_node")
-const mutationBinder = new DomMutationHandler(binderStorage)
-
-export function getBinder(el: Node): Binder {
-	mutationBinder.init()
-	let binder = binderStorage.get(el)
-	if(!binder){
-		binder = new BinderImpl(el)
-		binderStorage.set(el, binder)
+	unwatch<T>(box: RBox<T>, handler: (value: T) => void): void {
+		this.watchedBoxes = this.watchedBoxes?.filter(x => x.box === box && x.handler === handler) ?? null
 	}
-	return binder
+
 }
 
-// yeah, not very effective
-// though in real applications removal of something from watch list is not frequent operation
+// yeah, not very efficient
+// though in real applications removal of something from watch list is not a frequent operation
 // so, whatever
 function dropItemFromArray<T>(arr: T[] | null, item: T): T[] | null {
 	if(!arr || (arr.length === 1 && arr[0] === item)){
@@ -169,17 +165,6 @@ function dropItemFromArray<T>(arr: T[] | null, item: T): T[] | null {
 		}
 	}
 	return result
-}
-
-export function isInDOM(node: Node): boolean {
-	let parent = node.parentNode
-	while(parent){
-		if(parent === document.body){
-			return true
-		}
-		parent = parent.parentNode
-	}
-	return false
 }
 
 function fireAll(handlers: (() => void)[] | null): void {
