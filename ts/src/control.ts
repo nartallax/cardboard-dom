@@ -7,17 +7,24 @@ type PropsAllOptional<F, IfTrue, IfFalse> = Record<string, never> extends PropsO
 type HasTwoArguments<F, IfTrue, IfFalse> = ((a: any, b: any) => any) extends F ? IfTrue : IfFalse
 type HasOneArgument<F, IfTrue, IfFalse> = ((a: any) => any) extends F ? IfTrue : IfFalse
 
-type ControlDef<C, R, F> = HasTwoArguments<F,
-PropsAllOptional<F,
-((children?: C) => R) & ((props: PropsOf<F>, children?: C) => R),
-(props: PropsOf<F>, children?: C) => R
+type ControlDef<ChildArray, Result, Func> = (...args: ArgsOfControl<ChildArray, Func>) => Result
+
+type ArgsOfControl<ChildArray, Func> = HasTwoArguments<Func,
+PropsAllOptional<Func,
+// props all optional, has children
+[PropsOf<Func>, ChildArray] | [PropsOf<Func>] | [ChildArray] | [],
+// props not optional, has children
+[PropsOf<Func>, ChildArray] | [PropsOf<Func>]
 >,
-PropsAllOptional<F,
-HasOneArgument<F,
-(props?: PropsOf<F>) => R,
-() => R
+PropsAllOptional<Func,
+HasOneArgument<Func,
+// props all optional, no children
+[PropsOf<Func>] | [],
+// no children, no props
+[]
 >,
-(props: PropsOf<F>) => R
+// props not optional, no children
+[PropsOf<Func>]
 >>
 
 // types are a bit weird here, but that way it kinda works
