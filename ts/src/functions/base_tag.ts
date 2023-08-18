@@ -15,14 +15,13 @@ export function removeOnPrefix<T extends WithLeadingOn<keyof GlobalEventHandlers
 
 
 type CustomEventHandlers<ThisType = unknown> = {
-	// TODO: change this to afterInserted/beforeInserted, afterRemoved
-	readonly onInserted?: (element: ThisType) => void
+	readonly beforeInserted?: (element: ThisType) => void
+	readonly afterInserted?: (element: ThisType) => void
 	readonly onRemoved?: (element: ThisType) => void
 }
 
 type Attributes = {
-	// TODO: null here?
-	readonly [attrName: string]: MRBox<string | number | boolean | undefined>
+	readonly [attrName: string]: MRBox<string | number | boolean | undefined | null>
 }
 
 export interface TagDescription<K extends string = string, ThisType = unknown> extends EventHandlers<ThisType>, CustomEventHandlers<ThisType>{
@@ -80,8 +79,10 @@ export function populateTag<K extends string, T, E>(tagBase: Element, descriptio
 			// so just be Any and that's it
 			// eslint-disable-next-line @typescript-eslint/no-explicit-any
 			const handler = description[k as keyof EventHandlers] as any
-			if(k === "onInserted"){
-				(binder ||= getBinder(tagBase)).onInserted(handler)
+			if(k === "beforeInserted"){
+				(binder ||= getBinder(tagBase)).onInserted(handler, true)
+			} else if(k === "afterInserted"){
+				(binder ||= getBinder(tagBase)).onInserted(handler, false)
 			} else if(k === "onRemoved"){
 				(binder ||= getBinder(tagBase)).onRemoved(handler)
 			} else {
@@ -128,11 +129,10 @@ function setAttribute(tagBase: Element, attrName: string, value: Attributes[stri
 	}
 }
 
-// TODO: bad naming, do something about it
-/** This function is a way to subscribe to arbitrary boxes without making memory leak
+/** This function is a way to subscribe to arbitrary box without making memory leak
  * Subscriptions will only be called when the component is in the DOM
  * (with the only exception being first immediate call, which will happen regardless of mount state) */
-export function whileMounted<T>(el: Element, box: MRBox<T>, handler: (value: T) => void, opts?: {dontCallImmediately?: boolean}): void {
+export function bindBox<T>(el: Element, box: MRBox<T>, handler: (value: T) => void, opts?: {dontCallImmediately?: boolean}): void {
 	(opts?.dontCallImmediately ? watch : watchAndRun)(null, el, box, handler)
 }
 
@@ -158,9 +158,7 @@ export function watchAndRun<T>(binder: Binder | null, node: Node, value: MRBox<T
 	return binder
 }
 
-// TODO: after our changes "onInserted" will be invoked BEFORE actual DOM tree insertion
-// so we need to rethink it
-export function onMount(el: Element, handler: (() => void) | (() => () => void)): void {
+export function onMount(el: Element, handler: (() => void) | (() => () => void), options?: {beforeInserted?: boolean}): void {
 	const binder = getBinder(el)
 	binder.onInserted(() => {
 		const result = handler()
@@ -174,7 +172,7 @@ export function onMount(el: Element, handler: (() => void) | (() => () => void))
 			}
 			binder.onRemoved(removeHandler)
 		}
-	})
+	}, options?.beforeInserted)
 }
 
 function updateChildren(parent: Node, newChildren: readonly Node[]): void {

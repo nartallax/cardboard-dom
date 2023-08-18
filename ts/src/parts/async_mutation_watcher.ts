@@ -18,6 +18,13 @@ export class AsyncMutationWatcher {
 		}
 	}
 
+	shutdown(): void {
+		if(this.observer){
+			this.observer.disconnect()
+			this.observer = null
+		}
+	}
+
 	private collectEligibleNodesFromArray(nodes: Node[]): Set<Node> {
 		const result = new Set<Node>()
 		for(let i = 0; i < nodes.length; i++){
@@ -52,8 +59,6 @@ export class AsyncMutationWatcher {
 		const addedNodes = this.collectEligibleNodesFromArray(addedNodesArr)
 		const removedNodes = this.collectEligibleNodesFromArray(removedNodesArr)
 
-		// TODO: can optimise here maybe? to not check twice for nodes that was both inserted and removed
-		// also this whole algo feels slow
 		for(const node of addedNodes){
 			if(removedNodes.has(node)){
 				continue

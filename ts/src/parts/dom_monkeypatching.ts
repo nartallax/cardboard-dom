@@ -10,8 +10,6 @@
  *
  * Will call handlers only for top-level inserted/removed nodes (i.e. won't iterate their children to call handlers)
  * Won't call beforeInsert in case of nodes created on-fly when HTML text is changed (by innerHTML, outerHTML, setHTML()) */
-
-// TODO: tests, tests, tests
 export function monkeyPatchDomForInsertRemove(beforeInsert: (node: Node, parent: Node) => void, afterRemoveOrInsert: (node: Node) => void): void {
 	const beforeInsertIfNode = (x: unknown, parent: Node) => {
 		if(x instanceof Node){

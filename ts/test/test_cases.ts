@@ -1,6 +1,6 @@
 import {RBox, WBox, box, viewBox} from "@nartallax/cardboard"
 import {defineControl} from "src/control"
-import {whileMounted} from "src/functions/base_tag"
+import {bindBox} from "src/functions/base_tag"
 import {containerTag, tag} from "src/functions/html_tag"
 import {svgTag} from "src/functions/svg_tag"
 import {localStorageBox} from "src/local_storage_box"
@@ -128,6 +128,19 @@ defineTestCase("can assign undefined to attr", async() => {
 	container.remove()
 })
 
+defineTestCase("can assign null to attr", async() => {
+	const container = tag({attrs: {"data-uwuwu": null}}, ["data-uwuwu"])
+	await sleep(250)
+	document.body.appendChild(container)
+	await sleep(250)
+
+	const attrVal = container.getAttribute("data-uwu")
+	if(attrVal !== null){
+		throw new Error("Wut...? " + attrVal)
+	}
+	container.remove()
+})
+
 defineTestCase("can pass a box of null as child", async() => {
 	const boxOfNull = box(null)
 	const container = tag({class: "null-box-child-test"}, [boxOfNull])
@@ -232,7 +245,7 @@ defineTestCase("whileMounted", async() => {
 
 	const Label = () => {
 		const result = tag()
-		whileMounted(result, text, text => result.textContent = text)
+		bindBox(result, text, text => result.textContent = text)
 		if(result.textContent !== "uwu"){
 			throw new Error("Expected uwu, got " + result.textContent)
 		}

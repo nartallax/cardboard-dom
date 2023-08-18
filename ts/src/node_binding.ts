@@ -6,6 +6,11 @@ const binders = new WeakMap<Node, Binder>()
 const asyncWatcher = new AsyncMutationWatcher(binders)
 const syncWatcher = new SyncMutationWatcher(binders)
 
+/** This function allows to stop debug observer from working
+ * Debug observer only exists to warn you about improper DOM manipulations;
+ * if there are none, it's safe to turn off to reclaim some performance. */
+export const shutdownDebugObserver = () => asyncWatcher.shutdown()
+
 export const getBinder = (node: Node): Binder => {
 	asyncWatcher.init()
 	syncWatcher.init()

@@ -13,7 +13,8 @@ interface WatchedBox<T = unknown>{
 /** Binder is a way to access various lifecycle events of DOM nodes
  * Through that it can help with subscription to various stuff like boxes */
 export class Binder {
-	private insertedHandlers = null as null | (() => void)[]
+	private beforeInsertedHandlers = null as null | (() => void)[]
+	private afterInsertedHandlers = null as null | (() => void)[]
 	private removedHandlers = null as null | (() => void)[]
 	private watchedBoxes = null as null | WatchedBox[]
 	isInDom: boolean
@@ -22,16 +23,24 @@ export class Binder {
 		this.isInDom = node.isConnected
 	}
 
-	onInserted(handler: () => void): void {
-		(this.insertedHandlers ||= []).push(handler)
+	onInserted(handler: () => void, before?: boolean): void {
+		if(before){
+			(this.beforeInsertedHandlers ||= []).push(handler)
+		} else {
+			(this.afterInsertedHandlers ||= []).push(handler)
+		}
 	}
 
 	onRemoved(handler: () => void): void {
 		(this.removedHandlers ||= []).push(handler)
 	}
 
-	offInserted(handler: () => void): void {
-		this.insertedHandlers = dropItemFromArray(this.insertedHandlers, handler)
+	offInserted(handler: () => void, before?: boolean): void {
+		if(before){
+			this.beforeInsertedHandlers = dropItemFromArray(this.beforeInsertedHandlers, handler)
+		} else {
+			this.afterInsertedHandlers = dropItemFromArray(this.afterInsertedHandlers, handler)
+		}
 	}
 
 	offRemoved(handler: () => void): void {
@@ -69,7 +78,14 @@ export class Binder {
 			}
 		}
 
-		fireAll(this.insertedHandlers)
+		fireAll(this.beforeInsertedHandlers)
+	}
+
+	notifyAfterInserted(): void {
+		if(!this.isInDom){
+			return
+		}
+		fireAll(this.afterInsertedHandlers)
 	}
 
 	notifyAfterRemoved(): void {
