@@ -4,15 +4,12 @@ import {bindBox} from "src/functions/base_tag"
 import {containerTag, tag} from "src/functions/html_tag"
 import {svgTag} from "src/functions/svg_tag"
 import {localStorageBox} from "src/local_storage_box"
+import {assertEquals, assertTruthy, sleep} from "test/test_utils"
 
 export const testCases: {name: string, tester(): void | Promise<void>}[] = []
 
-function defineTestCase(name: string, tester: () => void | Promise<void>): void {
+export function defineTestCase(name: string, tester: () => void | Promise<void>): void {
 	testCases.push({name, tester})
-}
-
-function sleep(ms: number): Promise<void> {
-	return new Promise(ok => setTimeout(ok, ms))
 }
 
 defineTestCase("waitDocumentLoaded", () => {
@@ -33,53 +30,35 @@ defineTestCase("unsubscribe from box when element is removed from DOM", async() 
 	})
 
 	const element = tag([calcBox])
-	if(callsCount !== 1){
-		throw new Error("Expected 1 call, got " + callsCount)
-	}
+	assertEquals(callsCount, 1)
 	await sleep(250)
 	document.body.appendChild(element)
 	await sleep(250)
 
 	b.set("test2")
-	if(callsCount as unknown !== 2){ // uhh.
-		throw new Error("Expected 2 calls, got " + callsCount)
-	}
+	assertEquals(callsCount, 2)
 
 	await sleep(500)
 
 	b.set("test3")
-	if(callsCount as unknown !== 3){
-		throw new Error("Expected 3 calls, got " + callsCount)
-	}
+	assertEquals(callsCount, 3)
 	element.remove()
-	if(callsCount as unknown !== 3){
-		throw new Error("Expected 3 calls, got " + callsCount)
-	}
+	assertEquals(callsCount, 3)
 	await sleep(250)
-	if(callsCount as unknown !== 3){
-		throw new Error("Expected 3 calls, got " + callsCount)
-	}
+	assertEquals(callsCount, 3)
 
 	b.set("test4")
-	if(callsCount as unknown !== 3){
-		throw new Error("Expected 3 calls, got " + callsCount)
-	}
+	assertEquals(callsCount, 3)
 })
 
 defineTestCase("local storage box", async() => {
 	const name = "test-local-storage-value"
 	try {
 		const b = localStorageBox(name, {a: 5, b: 10})
-		if(b.get().a !== 5){
-			throw new Error(`${b.get().a} !== 5`)
-		}
-		if(localStorage.getItem(name) !== null){
-			throw new Error(`${localStorage.getItem(name)} !== null`)
-		}
+		assertEquals(b.get().a, 5)
+		assertEquals(localStorage.getItem(name), null)
 		b.set({a: 6, b: 15})
-		if(localStorage.getItem(name) !== "{\"a\":6,\"b\":15}"){
-			throw new Error(`${localStorage.getItem(name)} !== {"a":6,"b":15}`)
-		}
+		assertEquals(localStorage.getItem(name), "{\"a\":6,\"b\":15}")
 	} finally {
 		localStorage.removeItem(name)
 	}
@@ -91,9 +70,7 @@ defineTestCase("null child among non-nulls", async() => {
 	const container = tag([childA, childB])
 	await sleep(250)
 	document.body.appendChild(container)
-	if(!childA.isConnected){
-		throw new Error("child A is not in DOM")
-	}
+	assertTruthy(childA.isConnected, "child A is not in DOM")
 	container.remove()
 })
 
@@ -109,9 +86,7 @@ defineTestCase("tag don't invoke child map more times than needed", async() => {
 	document.body.appendChild(container)
 	await sleep(250)
 
-	if(invokeCount !== 3){
-		throw new Error("Too many mapper calls: " + invokeCount)
-	}
+	assertEquals(invokeCount, 3)
 	container.remove()
 })
 
@@ -122,9 +97,7 @@ defineTestCase("can assign undefined to attr", async() => {
 	await sleep(250)
 
 	const attrVal = container.getAttribute("data-uwu")
-	if(attrVal !== null){
-		throw new Error("Wut...? " + attrVal)
-	}
+	assertEquals(attrVal, null)
 	container.remove()
 })
 
@@ -135,9 +108,7 @@ defineTestCase("can assign null to attr", async() => {
 	await sleep(250)
 
 	const attrVal = container.getAttribute("data-uwu")
-	if(attrVal !== null){
-		throw new Error("Wut...? " + attrVal)
-	}
+	assertEquals(attrVal, null)
 	container.remove()
 })
 
@@ -149,9 +120,7 @@ defineTestCase("can pass a box of null as child", async() => {
 	await sleep(250)
 
 	const text = container.textContent
-	if(text){
-		throw new Error("Wut...? " + text)
-	}
+	assertEquals(text, "")
 	container.remove()
 })
 
@@ -162,42 +131,13 @@ defineTestCase("can assign number to attr/style", async() => {
 	document.body.appendChild(container)
 	await sleep(250)
 
-	{
-		const attrVal = container.getAttribute("data-uwu")
-		if(attrVal !== "5"){
-			throw new Error("Wut...? " + attrVal)
-		}
-	}
-
-	{
-		const attrVal = container.getAttribute("data-owo")
-		if(attrVal !== "10"){
-			throw new Error("Wut...? " + attrVal)
-		}
-	}
-
-	{
-		const styleVal = container.style.flexGrow
-		if(styleVal !== "1"){
-			throw new Error("Wut...? " + styleVal)
-		}
-	}
-
-	{
-		const styleVal = container.style.flexShrink
-		if(styleVal !== "1"){
-			throw new Error("Wut...? " + styleVal)
-		}
-	}
+	assertEquals(container.getAttribute("data-uwu"), "5")
+	assertEquals(container.getAttribute("data-owo"), "10")
+	assertEquals(container.style.flexGrow, "1")
+	assertEquals(container.style.flexShrink, "1")
 
 	owoBox.set(15)
-	{
-		const attrVal = container.getAttribute("data-owo")
-		if(attrVal !== "15"){
-			throw new Error("Wut...? " + attrVal)
-		}
-	}
-
+	assertEquals(container.getAttribute("data-owo"), "15")
 
 	container.remove()
 })
@@ -210,9 +150,7 @@ defineTestCase("can pass svg as child of div", async() => {
 	await sleep(250)
 
 	const svgFromSearch = container.querySelector("svg")
-	if(!svgFromSearch){
-		throw new Error("No svg")
-	}
+	assertTruthy(svgFromSearch)
 
 	container.remove()
 })
@@ -246,9 +184,7 @@ defineTestCase("whileMounted", async() => {
 	const Label = () => {
 		const result = tag()
 		bindBox(result, text, text => result.textContent = text)
-		if(result.textContent !== "uwu"){
-			throw new Error("Expected uwu, got " + result.textContent)
-		}
+		assertEquals(result.textContent, "uwu")
 		return result
 	}
 
@@ -258,9 +194,7 @@ defineTestCase("whileMounted", async() => {
 	await sleep(250)
 	text.set("owo")
 	await sleep(250)
-	if(label.textContent !== "owo"){
-		throw new Error("Expected owo, got " + label.textContent)
-	}
+	assertEquals(label.textContent, "owo")
 	label.remove()
 })
 
@@ -279,9 +213,8 @@ defineTestCase("can define generic control", () => {
 	// should not work: control has required arguments
 	// const inputC = numericInput()
 
-	if((inputA as any).value !== "5" || (inputB as any).value !== "6"){
-		throw new Error("Bad value")
-	}
+	assertEquals((inputA as any).value, "5")
+	assertEquals((inputB as any).value, "6")
 })
 
 defineTestCase("can define container-only control", () => {
@@ -290,9 +223,7 @@ defineTestCase("can define container-only control", () => {
 	})
 
 	const el = container(["uwu", "owo"])
-	if(el.textContent !== "uwuowo"){
-		throw new Error("Unexpected text content")
-	}
+	assertEquals(el.textContent, "uwuowo")
 })
 
 defineTestCase("can define container-with-props control", () => {
@@ -303,21 +234,17 @@ defineTestCase("can define container-with-props control", () => {
 	const a = container(["uwu"])
 	const b = container({type: "owo"})
 	const c = container({type: "ayaya"}, ["ayaya"])
-	if(a.getAttribute("data-type") !== "dflt-type"
-	|| a.textContent !== "uwu"
-	|| b.getAttribute("data-type") !== "owo"
-	|| c.getAttribute("data-type") !== "ayaya"
-	|| c.textContent !== "ayaya"){
-		throw new Error("Something borken uwu")
-	}
+	assertEquals(a.getAttribute("data-type"), "dflt-type")
+	assertEquals(a.textContent, "uwu")
+	assertEquals(b.getAttribute("data-type"), "owo")
+	assertEquals(c.getAttribute("data-type"), "ayaya")
+	assertEquals(c.textContent, "ayaya")
 })
 
 defineTestCase("can define control without children and props", () => {
 	const knob = defineControl(() => tag({class: "knob"}))
 	const a = knob()
-	if(a.className !== "knob"){
-		throw new Error("Wrong classname")
-	}
+	assertEquals(a.className, "knob")
 })
 
 defineTestCase("containerTag updates by data", async() => {
@@ -339,9 +266,8 @@ defineTestCase("containerTag updates by data", async() => {
 		for(let i = 0; i < container.children.length; i++){
 			const child = container.children[i]!
 			const [index, text] = expected[i]!
-			if(child.textContent !== text || child.getAttribute("data-index") !== index + ""){
-				throw new Error(`Wrong child at ${i}: expected index=${index} and text=${text}, got index=${child.getAttribute("data-index")} and text=${child.textContent}`)
-			}
+			assertEquals(child.textContent, text)
+			assertEquals(child.getAttribute("data-index"), index + "")
 		}
 	}
 
@@ -381,9 +307,7 @@ defineTestCase("containerTag passes wbox to a child", () => {
 	document.body.appendChild(container)
 
 	boxes[1]?.set("uwu")
-	if(container.textContent !== "auwuc"){
-		throw new Error("Wrong text")
-	}
+	assertEquals(container.textContent, "auwuc")
 
 	container.remove()
 })
@@ -523,3 +447,12 @@ defineTestCase("monkeypatching unsubs", () => {
 
 	parent.remove()
 })
+
+// defineTestCase("remove node in beforeinsert", async() => {
+// 	const b = tag()
+// 	const cBox = box("owo")
+// 	const c = tag([cBox])
+// 	document.body.appendChild(c)
+// 	onMount(b, () => c.remove(), {beforeInserted: true})
+// 	document.body.appendChild(b)
+// })
