@@ -1,9 +1,9 @@
 import {RBox, WBox, box, viewBox} from "@nartallax/cardboard"
 import {defineControl} from "src/control"
 import {bindBox, onMount} from "src/functions/base_tag"
+import {bindBoxToDom} from "src/functions/bind_box_to_dom"
 import {containerTag, tag} from "src/functions/html_tag"
 import {svgTag} from "src/functions/svg_tag"
-import {localStorageBox} from "src/local_storage_box"
 import {mismatchedNodesErrorCount} from "src/parts/binder"
 import {assertEquals, assertErrorTextMatches, assertFalsy, assertTruthy, sleep} from "test/test_utils"
 
@@ -57,15 +57,16 @@ defineTestCase("unsubscribe from box when element is removed from DOM", async() 
 })
 
 defineTestCase("local storage box", async() => {
-	const name = "test-local-storage-value"
+	const key = "test-local-storage-value"
 	try {
-		const b = localStorageBox(name, {a: 5, b: 10})
+		const b = box({a: 5, b: 10})
+		bindBoxToDom(b, {type: "localStorage", key})
 		assertEquals(b.get().a, 5)
-		assertEquals(localStorage.getItem(name), null)
+		assertEquals(localStorage.getItem(key), null)
 		b.set({a: 6, b: 15})
-		assertEquals(localStorage.getItem(name), "{\"a\":6,\"b\":15}")
+		assertEquals(localStorage.getItem(key), "{\"a\":6,\"b\":15}")
 	} finally {
-		localStorage.removeItem(name)
+		localStorage.removeItem(key)
 	}
 })
 
