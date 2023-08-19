@@ -6,7 +6,7 @@ type NoValue = typeof noValue
 interface WatchedBox<T = unknown>{
 	readonly box: RBox<T>
 	handler(value: T): void
-	handlerWrap: null | ((value: T) => void)
+	readonly handlerWrap: ((value: T) => void)
 	lastKnownValue: T | NoValue
 }
 
@@ -61,25 +61,11 @@ export class Binder {
 		const boxes = this.watchedBoxes
 		if(boxes){
 			for(let i = 0; i < boxes.length; i++){
-				const box = boxes[i]!
-				// TODO: this is extremely bad way to do what we need to do
-				// but it'll do for now
-				// we do this because box is throwing errors when detached from upstream
-				// and the fix is long and inobvious
-				// this error should be resolved when (if) I rewrite cardboard to properly use value versioning
-				//
-				// the source of this error is - elements are rendered synchronously, and subscribed synchronously
-				// but the updates to the DOM tree are asynchronous
-				// so, when update is here already, box that was subscribed to in render phase can be detached already
-				try {
-					const value = box.box.get()
-					if(box.lastKnownValue !== value){
-						this.invokeBoxHandler(value, box)
-					}
-					this.subToBox(box)
-				} catch(e){
-					box.handlerWrap = () => {/* noop */}
-					console.warn("Box update error ignored: " + e)
+				const boxWrap = boxes[i]!
+				const value = boxWrap.box.get()
+				boxWrap.box.subscribe(boxWrap.handlerWrap)
+				if(boxWrap.lastKnownValue !== value){
+					this.invokeBoxHandler(value, boxWrap)
 				}
 			}
 		}
@@ -99,17 +85,13 @@ export class Binder {
 		if(!this.isInDom){
 			return
 		}
-		// console.log("afterremoved", this.node)
 		this.isInDom = false
 		this.isExpectingInsertion = false // in case of some weird tree manipulations
 		const boxes = this.watchedBoxes
 		if(boxes){
 			for(let i = 0; i < boxes.length; i++){
 				const box = boxes[i]!
-				if(box.handlerWrap){
-					// TODO: why are we not null-ing unsub fn here?
-					box.box.unsubscribe(box.handlerWrap)
-				}
+				box.box.unsubscribe(box.handlerWrap)
 			}
 		}
 
@@ -135,43 +117,39 @@ export class Binder {
 		box.lastKnownValue = value
 	}
 
-	private subToBox(box: WatchedBox): void {
-		// TODO: cringe
-		box.handlerWrap = v => this.invokeBoxHandler(v, box)
-		box.box.subscribe(box.handlerWrap)
-	}
-
-	private subscribe<T>(box: RBox<T>, handler: (value: T) => void): {unsub(): void, watchedBox: WatchedBox} {
-		const watchedBox: WatchedBox = {
+	private subscribe<T>(box: RBox<T>, handler: (value: T) => void): WatchedBox {
+		const boxWrap: WatchedBox = {
 			box,
 			handler,
 			lastKnownValue: noValue,
-			handlerWrap: null
+			// wonder if creating a handler wrapper is more performant than storing lastKnownValue and handler in map
+			handlerWrap: v => this.invokeBoxHandler(v, boxWrap)
 		}
 		if(this.isInDom){
-			this.subToBox(watchedBox)
+			boxWrap.box.subscribe(boxWrap.handlerWrap)
 		}
-		(this.watchedBoxes ||= []).push(watchedBox)
-		return {
-			unsub: () => {
-				this.watchedBoxes = dropItemFromArray(this.watchedBoxes, watchedBox)
-			},
-			watchedBox
-		}
+		(this.watchedBoxes ||= []).push(boxWrap)
+		return boxWrap
 	}
 
-	watch<T>(box: RBox<T>, handler: (value: T) => void): () => void {
-		return this.subscribe(box, handler).unsub
+	watch<T>(box: RBox<T>, handler: (value: T) => void): void {
+		this.subscribe(box, handler)
 	}
 
-	watchAndRun<T>(box: RBox<T>, handler: (value: T) => void): () => void {
-		const {unsub, watchedBox} = this.subscribe(box, handler)
-		this.invokeBoxHandler(box.get(), watchedBox)
-		return unsub
+	watchAndRun<T>(box: RBox<T>, handler: (value: T) => void): void {
+		const boxWrap = this.subscribe(box, handler)
+		this.invokeBoxHandler(box.get(), boxWrap)
 	}
 
 	unwatch<T>(box: RBox<T>, handler: (value: T) => void): void {
-		this.watchedBoxes = this.watchedBoxes?.filter(x => x.box === box && x.handler === handler) ?? null
+		const filteredBoxes = this.watchedBoxes?.filter(boxWrap => {
+			if(boxWrap.box === box && boxWrap.handler === handler){
+				boxWrap.box.unsubscribe(boxWrap.handlerWrap)
+				return false
+			}
+			return true
+		})
+		this.watchedBoxes = !filteredBoxes || filteredBoxes.length < 0 ? null : filteredBoxes
 	}
 
 }
