@@ -1,5 +1,6 @@
-export {localStorageBox} from "src/local_storage_box"
-export {bindBox as whileMounted, onMount} from "src/functions/base_tag"
+export {localStorageBox} from "src/box_dom_binding/local_storage_box"
+export {bindBoxToDomValue} from "src/box_dom_binding/bind_box_to_dom"
+export {bindBox, onMount} from "src/functions/base_tag"
 export {tag} from "src/functions/html_tag"
 export type {HTMLTagDescription} from "src/functions/html_tag"
 export {svgTag} from "src/functions/svg_tag"
