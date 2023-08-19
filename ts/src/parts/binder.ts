@@ -20,7 +20,7 @@ export class Binder {
 	private afterInsertedHandlers = null as null | (() => void)[]
 	private removedHandlers = null as null | (() => void)[]
 	private watchedBoxes = null as null | WatchedBox[]
-	private isInDom: boolean
+	isInDom: boolean
 	private isExpectingInsertion = false
 
 	constructor(readonly node: Node) {

@@ -158,10 +158,22 @@ export function watchAndRun<T>(binder: Binder | null, node: Node, value: MRBox<T
 	return binder
 }
 
-// TODO: throw if already in DOM?
-export function onMount(el: Element, handler: (() => void) | (() => () => void), options?: {beforeInserted?: boolean}): void {
+type OnMountOptions = {
+	/** If true, will invoke handler before node is in DOM, not after
+	 * DOM manipulations should be avoided if this option is enabled,
+	 * because it may lead to unexpected behaviour */
+	readonly beforeInserted?: boolean
+	/** What to do if the node is already in DOM?
+	 * "throw" (default) - throw an error. Because most of the time doing nothing or calling is unexpected and wrong.
+	 * "nothing" - do nothing. It's fine to not invoke the handler.
+	 * "call" - call the handler */
+	readonly ifInDom?: "throw" | "nothing" | "call"
+}
+
+export function onMount(el: Element, handler: (() => void) | (() => () => void), options?: OnMountOptions): void {
 	const binder = getBinder(el)
-	binder.onInserted(() => {
+
+	const onInserted = () => {
 		const result = handler()
 		if(typeof(result) === "function"){
 			const removeHandler = () => {
@@ -173,7 +185,15 @@ export function onMount(el: Element, handler: (() => void) | (() => () => void),
 			}
 			binder.onRemoved(removeHandler)
 		}
-	}, options?.beforeInserted)
+	}
+
+	if(binder.isInDom){
+		switch(options?.ifInDom ?? "throw"){
+			case "throw": throw new Error("Node is already in DOM, that's unexpected")
+			case "call": onInserted(); break
+		}
+	}
+	binder.onInserted(onInserted, options?.beforeInserted)
 }
 
 function updateChildren(parent: Node, newChildren: readonly Node[]): void {

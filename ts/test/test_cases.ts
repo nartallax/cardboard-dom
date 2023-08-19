@@ -5,7 +5,7 @@ import {containerTag, tag} from "src/functions/html_tag"
 import {svgTag} from "src/functions/svg_tag"
 import {localStorageBox} from "src/local_storage_box"
 import {mismatchedNodesErrorCount} from "src/parts/binder"
-import {assertEquals, assertFalsy, assertTruthy, sleep} from "test/test_utils"
+import {assertEquals, assertErrorTextMatches, assertFalsy, assertTruthy, sleep} from "test/test_utils"
 
 export const testCases: {name: string, tester(): void | Promise<void>}[] = []
 
@@ -512,4 +512,42 @@ defineTestCase("child remove in unmounted state", async() => {
 	await sleep(250)
 	assertFalsy(mismatchedNodesErrorCount, "have nodes in bad state")
 	parentParent.remove()
+})
+
+defineTestCase("onMount() in DOM: throw", () => {
+	const a = tag()
+	document.body.appendChild(a)
+	let error: unknown = null
+	try {
+		onMount(a, () => {/* noop */})
+	} catch(e){
+		error = e
+	}
+	assertErrorTextMatches(error, /already in dom/i)
+	a.remove()
+})
+
+defineTestCase("onMount() in DOM: nothing", () => {
+	const a = tag()
+	document.body.appendChild(a)
+	let callCount = 0
+	onMount(a, () => callCount++, {ifInDom: "nothing"})
+	assertEquals(callCount, 0)
+	a.remove()
+})
+
+defineTestCase("onMount() in DOM: call", () => {
+	const a = tag()
+	document.body.appendChild(a)
+	let insertCallCount = 0
+	let removeCallCount = 0
+	onMount(a, () => {
+		insertCallCount++
+		return () => removeCallCount++
+	}, {ifInDom: "call"})
+	assertEquals(insertCallCount, 1)
+	assertEquals(removeCallCount, 0)
+	a.remove()
+	assertEquals(insertCallCount, 1)
+	assertEquals(removeCallCount, 1)
 })
