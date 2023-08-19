@@ -1,15 +1,20 @@
 import {RBox, WBox, box, viewBox} from "@nartallax/cardboard"
 import {defineControl} from "src/control"
-import {bindBox} from "src/functions/base_tag"
+import {bindBox, onMount} from "src/functions/base_tag"
 import {containerTag, tag} from "src/functions/html_tag"
 import {svgTag} from "src/functions/svg_tag"
 import {localStorageBox} from "src/local_storage_box"
-import {assertEquals, assertTruthy, sleep} from "test/test_utils"
+import {mismatchedNodesErrorCount} from "src/parts/binder"
+import {assertEquals, assertFalsy, assertTruthy, sleep} from "test/test_utils"
 
 export const testCases: {name: string, tester(): void | Promise<void>}[] = []
 
+const selectedCase = ""
+
 export function defineTestCase(name: string, tester: () => void | Promise<void>): void {
-	testCases.push({name, tester})
+	if(!selectedCase || name === selectedCase){
+		testCases.push({name, tester})
+	}
 }
 
 defineTestCase("waitDocumentLoaded", () => {
@@ -448,11 +453,63 @@ defineTestCase("monkeypatching unsubs", () => {
 	parent.remove()
 })
 
-// defineTestCase("remove node in beforeinsert", async() => {
-// 	const b = tag()
-// 	const cBox = box("owo")
-// 	const c = tag([cBox])
-// 	document.body.appendChild(c)
-// 	onMount(b, () => c.remove(), {beforeInserted: true})
-// 	document.body.appendChild(b)
-// })
+defineTestCase("remove node in beforeinsert", async() => {
+	const b = tag()
+	const cBox = box("owo")
+	const c = tag([cBox])
+	document.body.appendChild(c)
+	onMount(b, () => c.remove(), {beforeInserted: true})
+	document.body.appendChild(b)
+	assertFalsy(c.isConnected)
+	assertEquals(c.textContent, "owo")
+	cBox.set("uwu")
+	assertEquals(c.textContent, "owo")
+	b.remove()
+})
+
+defineTestCase("insert a node in afterRemove", async() => {
+	const b = tag(["b"])
+	const cBox = box("owo")
+	const c = tag([cBox])
+	onMount(b, () => () => document.body.appendChild(c))
+	document.body.appendChild(b)
+	b.remove()
+	assertTruthy(c.isConnected, "c.isConnected")
+	assertEquals(c.textContent, "owo")
+	cBox.set("uwu")
+	assertEquals(c.textContent, "uwu")
+	c.remove()
+})
+
+// TODO: same test with .replace()
+defineTestCase("live view slip", async() => {
+	const a = tag()
+	const b = tag()
+	const cText = box("uwu")
+	const c = tag([cText])
+	const parent = tag([a, b, c])
+	onMount(b, () => () => a.remove())
+	await sleep(250)
+	document.body.appendChild(parent)
+	await sleep(250)
+	parent.remove()
+	assertEquals(c.textContent, "uwu")
+	cText.set("owo")
+	assertEquals(c.textContent, "uwu")
+})
+
+defineTestCase("child remove in unmounted state", async() => {
+	const childData = box(["a", "aa", "aaa"])
+	const parent = containerTag(childData, x => x.length, x => tag([x]))
+	const parentParent = tag([parent])
+	await sleep(250)
+	document.body.appendChild(parentParent)
+	assertEquals(parentParent.textContent, "aaaaaa")
+	parentParent.remove()
+	childData.set(["a", "aaa"])
+	document.body.appendChild(parentParent)
+	assertEquals(parentParent.textContent, "aaaa")
+	await sleep(250)
+	assertFalsy(mismatchedNodesErrorCount, "have nodes in bad state")
+	parentParent.remove()
+})

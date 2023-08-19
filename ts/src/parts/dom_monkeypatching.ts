@@ -11,6 +11,9 @@
  * Will call handlers only for top-level inserted/removed nodes (i.e. won't iterate their children to call handlers)
  * Won't call beforeInsert in case of nodes created on-fly when HTML text is changed (by innerHTML, outerHTML, setHTML()) */
 export function monkeyPatchDomForInsertRemove(beforeInsert: (node: Node, parent: Node) => void, afterRemoveOrInsert: (node: Node) => void): void {
+
+	knownPatchedFunctions = new Set()
+
 	const beforeInsertIfNode = (x: unknown, parent: Node) => {
 		if(x instanceof Node){
 			beforeInsert(x, parent)
@@ -130,12 +133,16 @@ export function monkeyPatchDomForInsertRemove(beforeInsert: (node: Node, parent:
 		return result
 	})
 
+	knownPatchedFunctions = null
+
 }
 
 /** Those are all classes we potentially may want to patch
  * this file is organized that way because I'm afraid that some browsers will define some methods/properties in non-standard way
  * for now it's mostly in the past, but a nice robustness touch anyway */
 const patchableClasses = [Node, Element, HTMLElement, SVGElement]
+
+let knownPatchedFunctions: Set<any> | null = null
 
 function copyArrayLike<T>(src: ArrayLike<T>): T[] {
 	const result: T[] = new Array(src.length)
@@ -158,11 +165,12 @@ function monkeyPatchMethod(
 ): void {
 	for(const cls of patchableClasses){
 		const original = (cls.prototype as any)[name]
-		if(typeof(original) !== "function"){
+		if(typeof(original) !== "function" || knownPatchedFunctions?.has(original)){
 			continue
 		}
 		try {
-			const patchedMethod = makePatch(original);
+			const patchedMethod = makePatch(original)
+			knownPatchedFunctions?.add(patchedMethod);
 			// for testing purposes
 			(patchedMethod as any).originalNonPatchedMethod = original;
 			(cls.prototype as any)[name] = patchedMethod
@@ -177,10 +185,11 @@ function monkeyPatchSetter(name: string, makePatch: (original: any) => any): voi
 	for(const cls of patchableClasses){
 		try {
 			const originalProp = Object.getOwnPropertyDescriptor(cls.prototype, name)
-			if(!originalProp || typeof(originalProp.set) !== "function"){
+			if(!originalProp || typeof(originalProp.set) !== "function" || knownPatchedFunctions?.has(originalProp.set)){
 				continue
 			}
 			const patchedSetter = makePatch(originalProp.set)
+			knownPatchedFunctions?.add(patchedSetter)
 			Object.defineProperty(cls.prototype, name, {
 				...originalProp,
 				set: patchedSetter

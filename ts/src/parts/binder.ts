@@ -10,6 +10,9 @@ interface WatchedBox<T = unknown>{
 	lastKnownValue: T | NoValue
 }
 
+// for tests
+export let mismatchedNodesErrorCount = 0
+
 /** Binder is a way to access various lifecycle events of DOM nodes
  * Through that it can help with subscription to various stuff like boxes */
 export class Binder {
@@ -17,7 +20,8 @@ export class Binder {
 	private afterInsertedHandlers = null as null | (() => void)[]
 	private removedHandlers = null as null | (() => void)[]
 	private watchedBoxes = null as null | WatchedBox[]
-	isInDom: boolean
+	private isInDom: boolean
+	private isExpectingInsertion = false
 
 	constructor(readonly node: Node) {
 		this.isInDom = node.isConnected
@@ -51,7 +55,9 @@ export class Binder {
 		if(this.isInDom){
 			return
 		}
+		// console.log("beforeInserted", this.node)
 		this.isInDom = true
+		this.isExpectingInsertion = true
 		const boxes = this.watchedBoxes
 		if(boxes){
 			for(let i = 0; i < boxes.length; i++){
@@ -82,9 +88,10 @@ export class Binder {
 	}
 
 	notifyAfterInserted(): void {
-		if(!this.isInDom){
+		if(!this.isExpectingInsertion){
 			return
 		}
+		this.isExpectingInsertion = false
 		fireAll(this.afterInsertedHandlers)
 	}
 
@@ -92,7 +99,9 @@ export class Binder {
 		if(!this.isInDom){
 			return
 		}
+		// console.log("afterremoved", this.node)
 		this.isInDom = false
+		this.isExpectingInsertion = false // in case of some weird tree manipulations
 		const boxes = this.watchedBoxes
 		if(boxes){
 			for(let i = 0; i < boxes.length; i++){
@@ -109,7 +118,8 @@ export class Binder {
 
 	notifyAttachmentState(shouldBeAttached: boolean): void {
 		if(this.isInDom !== shouldBeAttached){
-			console.error(`A node was ${shouldBeAttached ? "inserted into" : "removed from"} DOM tree with unexpected method or property. This could result in memory leaks and/or inconsistent state. Please investigate and report an error.`, this.node)
+			console.error(`A node was ${shouldBeAttached ? "inserted into" : "removed from"} DOM tree using unexpected method or property. This could result in memory leaks and/or inconsistent state. Please investigate and report an error.`, this.node)
+			mismatchedNodesErrorCount++
 
 			// this really should be done synchronously
 			if(shouldBeAttached){

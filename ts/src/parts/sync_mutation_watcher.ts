@@ -1,15 +1,11 @@
 import {Binder} from "src/parts/binder"
 import {monkeyPatchDomForInsertRemove} from "src/parts/dom_monkeypatching"
+import {ProjectedTreeState} from "src/parts/projected_tree_state"
 
-/** TODO: tests:
- * 1. remove some node in beforeInsert
- * 2. insert some node in afterRemove
- * 3. remove child of removed node in afterRemove, so childNodes "slip" and skip a node
- * 4. remove parent from dom tree in beforeInsert, so ongoing handler calls are no more valid
- */
 export class SyncMutationWatcher {
 
 	private isInit = false
+	private readonly projectedTreeState = new ProjectedTreeState()
 
 	constructor(readonly binders: WeakMap<Node, Binder>) {}
 
@@ -23,28 +19,48 @@ export class SyncMutationWatcher {
 		}
 	}
 
-	private beforeInserted(node: Node, ancestor: Node): void {
-		// we need to check it for each node
-		// because ancestor can get detached as result of work of beforeInsert handlers
-		if(ancestor.isConnected){
-			const binder = this.binders.get(node)
-			if(binder){
-				binder.notifyBeforeInserted()
+	private collectBinders(node: Node, result: Binder[] = []): Binder[] {
+		const binder = this.binders.get(node)
+		if(binder){
+			result.push(binder)
+		}
+		for(let i = 0; i < node.childNodes.length; i++){
+			this.collectBinders(node.childNodes[i]!, result)
+		}
+		return result
+	}
+
+	private beforeInserted(node: Node, parent: Node): void {
+		if(!this.projectedTreeState.isInserted(parent)){
+			return
+		}
+
+		this.projectedTreeState.startInsertOperation(node)
+		try {
+			const binders = this.collectBinders(node)
+			for(let i = 0; (i < binders.length); i++){
+				const binder = binders[i]!
+				if(this.projectedTreeState.isInserted(binder.node)){
+					binder.notifyBeforeInserted()
+				}
 			}
-			for(let i = 0; i < node.childNodes.length && ancestor.isConnected; i++){
-				this.beforeInserted(node.childNodes[i]!, ancestor)
-			}
+		} finally {
+			this.projectedTreeState.endInsertOperation()
 		}
 	}
 
 	private afterRemovedOrInserted(node: Node): void {
 		if(!node.isConnected){
-			const binder = this.binders.get(node)
-			if(binder){
+			this.projectedTreeState.markNodeRemoved(node)
+		}
+
+		const binders = this.collectBinders(node)
+		for(let i = 0; i < binders.length; i++){
+			const binder = binders[i]!
+			if(!binder.node.isConnected){
 				binder.notifyAfterRemoved()
-			}
-			for(let i = 0; i < node.childNodes.length && !node.isConnected; i++){
-				this.afterRemovedOrInserted(node.childNodes[i]!)
+			} else {
+				binder.notifyAfterInserted()
 			}
 		}
 	}

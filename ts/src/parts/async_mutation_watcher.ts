@@ -1,8 +1,5 @@
 import {Binder} from "src/parts/binder"
 
-// for tests mostly
-export const lastDomMutationError: Error | null = null
-
 /** A wrap around MutationObserver
  * exists to check after monkeypatched DOM nodes
  * (we should emit error if observer's state is not consistent with monkeypatched state) */
@@ -36,10 +33,10 @@ export class AsyncMutationWatcher {
 	private collectEligibleNodes(node: Node, result: Set<Node>): void {
 		if(this.binders.has(node)){
 			result.add(node)
-			const children = node.childNodes
-			for(let i = 0; i < children.length; i++){
-				this.collectEligibleNodes(children[i]!, result)
-			}
+		}
+		const children = node.childNodes
+		for(let i = 0; i < children.length; i++){
+			this.collectEligibleNodes(children[i]!, result)
 		}
 	}
 

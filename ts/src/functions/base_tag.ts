@@ -158,6 +158,7 @@ export function watchAndRun<T>(binder: Binder | null, node: Node, value: MRBox<T
 	return binder
 }
 
+// TODO: throw if already in DOM?
 export function onMount(el: Element, handler: (() => void) | (() => () => void), options?: {beforeInserted?: boolean}): void {
 	const binder = getBinder(el)
 	binder.onInserted(() => {
