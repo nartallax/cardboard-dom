@@ -1,5 +1,5 @@
 import {RBox, WBox, box, viewBox} from "@nartallax/cardboard"
-import {defineControl} from "src/control"
+import {defineControl} from "src/functions/control"
 import {bindBox, onMount} from "src/functions/base_tag"
 import {bindBoxToDomValue} from "src/box_dom_binding/bind_box_to_dom"
 import {containerTag, tag} from "src/functions/html_tag"

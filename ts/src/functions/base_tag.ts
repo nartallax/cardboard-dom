@@ -1,5 +1,5 @@
 import {MRBox, RBox, isConstBox, isRBox, unbox} from "@nartallax/cardboard"
-import {ClassNameParts, makeClassname} from "src/classname"
+import {ClassNameParts, makeClassname} from "src/functions/classname"
 import {getBinder} from "src/node_binding"
 import {Binder} from "src/parts/binder"
 

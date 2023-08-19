@@ -1,6 +1,6 @@
 import {box} from "@nartallax/cardboard"
 import {tag} from "src/functions/html_tag"
-import {waitDocumentLoaded} from "src/wait_document_loaded"
+import {waitDocumentLoaded} from "src/functions/wait_document_loaded"
 import css from "./test.module.scss"
 import {testCases} from "test/test_cases"
 
