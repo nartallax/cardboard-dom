@@ -1,4 +1,5 @@
 import {RBox} from "@nartallax/cardboard"
+import {CssVariableBoxOptions, bindBoxToCssVariable} from "src/box_dom_binding/css_variable_box"
 import {LocalStorageBoxOptions, bindBoxToLocalStorage} from "src/box_dom_binding/local_storage_box"
 
 export type DomBoxOptionsBase = {
@@ -15,7 +16,7 @@ type UrlOptions = DomBoxOptionsBase & {
 	readonly part: "path" | "hash" | "pathAndHash"
 }
 
-type Options<T> = (LocalStorageBoxOptions<T> | (string extends T ? UrlOptions : never))
+type Options<T> = (LocalStorageBoxOptions<T> | CssVariableBoxOptions | (string extends T ? UrlOptions : never))
 
 /** This function is a way to link arbitrary box to some of well-known DOM values,
  * like URL parts or local storage values
@@ -26,6 +27,7 @@ type Options<T> = (LocalStorageBoxOptions<T> | (string extends T ? UrlOptions : 
 export function bindBoxToDomValue<T>(box: RBox<T>, options: Options<T>): void {
 	switch(options.type){
 		case "localStorage": bindBoxToLocalStorage(box, options); return
+		case "cssVariable": bindBoxToCssVariable(box, options); return
 		// case "url": bindBoxToUrl(box as RBox<string>, options); return
 	}
 }

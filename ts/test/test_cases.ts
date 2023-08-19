@@ -6,7 +6,7 @@ import {containerTag, tag} from "src/functions/html_tag"
 import {svgTag} from "src/functions/svg_tag"
 import {mismatchedNodesErrorCount} from "src/parts/binder"
 import {assertEquals, assertErrorTextMatches, assertFalsy, assertTruthy, sleep} from "test/test_utils"
-import {localStorageBox} from "src/cardboard-dom"
+import {cssVariableBox, localStorageBox} from "src/cardboard-dom"
 
 export const testCases: {name: string, tester(): void | Promise<void>}[] = []
 
@@ -18,7 +18,6 @@ export function defineTestCase(name: string, tester: () => void | Promise<void>)
 	}
 }
 
-// TODO: this is madness
 defineTestCase("waitDocumentLoaded", () => {
 	// nothing. if you can see the test page - it's working
 })
@@ -642,4 +641,23 @@ defineTestCase("onMount() in DOM: call", () => {
 	a.remove()
 	assertEquals(insertCallCount, 1)
 	assertEquals(removeCallCount, 1)
+})
+
+defineTestCase("cssVariableBox", () => {
+	const el = tag()
+	const b = box("5px")
+	const key = "--my-var"
+	bindBoxToDomValue(b, {type: "cssVariable", name: key, element: el})
+	assertEquals(el.style.getPropertyValue(key), "5px")
+	b.set("10px")
+	assertEquals(el.style.getPropertyValue(key), "10px")
+})
+
+defineTestCase("cssVariableBox: shorthand", () => {
+	const el = tag()
+	const key = "--my-var"
+	const b = cssVariableBox("6px", key, {element: el})
+	assertEquals(el.style.getPropertyValue(key), "6px")
+	b.set("8px")
+	assertEquals(el.style.getPropertyValue(key), "8px")
 })
