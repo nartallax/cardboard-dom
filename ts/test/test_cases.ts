@@ -62,9 +62,50 @@ defineTestCase("local storage box", async() => {
 		const b = box({a: 5, b: 10})
 		bindBoxToDom(b, {type: "localStorage", key})
 		assertEquals(b.get().a, 5)
-		assertEquals(localStorage.getItem(key), null)
+		assertEquals(localStorage.getItem(key), "{\"a\":5,\"b\":10}")
 		b.set({a: 6, b: 15})
 		assertEquals(localStorage.getItem(key), "{\"a\":6,\"b\":15}")
+	} finally {
+		localStorage.removeItem(key)
+	}
+})
+
+defineTestCase("local storage box: loads value from local storage on creation", async() => {
+	const key = "test-local-storage-value-2"
+	try {
+		localStorage.setItem(key, "\"ayaya\"")
+		const b = box("owo")
+		bindBoxToDom(b, {type: "localStorage", key})
+		assertEquals(b.get(), "ayaya")
+		b.set("uwu")
+		assertEquals(localStorage.getItem(key), "\"uwu\"")
+	} finally {
+		localStorage.removeItem(key)
+	}
+})
+
+defineTestCase("local storage box: sets value to local storage on creation", async() => {
+	const key = "test-local-storage-value-2"
+	try {
+		localStorage.setItem(key, "\"ayaya\"")
+		const b = box("owo")
+		bindBoxToDom(b, {type: "localStorage", key, preferOriginalValue: true})
+		assertEquals(b.get(), "owo")
+		assertEquals(localStorage.getItem(key), "\"owo\"")
+	} finally {
+		localStorage.removeItem(key)
+	}
+})
+
+defineTestCase("local storage box: sets value to local storage on creation if rbox", async() => {
+	const key = "test-local-storage-value-2"
+	try {
+		localStorage.setItem(key, "\"ayaya\"")
+		const a = box("owo")
+		const b = a.map(x => x + x)
+		bindBoxToDom(b, {type: "localStorage", key})
+		assertEquals(b.get(), "owoowo")
+		assertEquals(localStorage.getItem(key), "\"owoowo\"")
 	} finally {
 		localStorage.removeItem(key)
 	}
