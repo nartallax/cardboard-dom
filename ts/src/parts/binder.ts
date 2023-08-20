@@ -78,6 +78,7 @@ export class Binder {
 			return
 		}
 		this.isExpectingInsertion = false
+		// console.log("afterinserted", this.node)
 		fireAll(this.afterInsertedHandlers)
 	}
 
@@ -87,6 +88,7 @@ export class Binder {
 		}
 		this.isInDom = false
 		this.isExpectingInsertion = false // in case of some weird tree manipulations
+		// console.log("removed", this.node)
 		const boxes = this.watchedBoxes
 		if(boxes){
 			for(let i = 0; i < boxes.length; i++){

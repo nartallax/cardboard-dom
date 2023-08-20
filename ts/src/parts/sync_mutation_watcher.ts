@@ -36,6 +36,7 @@ export class SyncMutationWatcher {
 		}
 
 		this.projectedTreeState.startInsertOperation(node)
+		// console.log("startInsertOperation", node)
 		try {
 			const binders = this.collectBinders(node)
 			for(let i = 0; (i < binders.length); i++){
@@ -50,17 +51,25 @@ export class SyncMutationWatcher {
 	}
 
 	private afterRemovedOrInserted(node: Node): void {
-		if(!node.isConnected){
+		if(!node.parentNode){
+			// we can't rely on .isConnected here
+			// because even if it is inserted, it may be not connected
+			// because parent is not in the DOM yet
+			// so, to see intent - if the node is removed or inserted somewhere - we can check .parentNode
 			this.projectedTreeState.markNodeRemoved(node)
 		}
 
 		const binders = this.collectBinders(node)
 		for(let i = 0; i < binders.length; i++){
 			const binder = binders[i]!
-			if(!binder.node.isConnected){
-				binder.notifyAfterRemoved()
-			} else {
+			if(binder.node.isConnected){
 				binder.notifyAfterInserted()
+			} else {
+				// console.log([...(this.projectedTreeState as any).nodesInTree])
+				if(this.projectedTreeState.isInserted(binder.node)){
+					continue // we'll call notify on this node after its parent is fully inserted
+				}
+				binder.notifyAfterRemoved()
 			}
 		}
 	}
