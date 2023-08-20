@@ -1,5 +1,5 @@
 import {Binder} from "src/parts/binder"
-import {monkeyPatchDomForInsertRemove} from "src/parts/dom_monkeypatching"
+import {monkeyPatchDomForInsertRemove} from "src/monkeypatching/dom_monkeypatching"
 import {ProjectedTreeState} from "src/parts/projected_tree_state"
 
 export class SyncMutationWatcher {

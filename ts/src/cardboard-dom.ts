@@ -1,5 +1,6 @@
 export {localStorageBox} from "src/box_dom_binding/local_storage_box"
 export {cssVariableBox} from "src/box_dom_binding/css_variable_box"
+export {urlBox} from "src/box_dom_binding/url_box"
 export {bindBoxToDomValue} from "src/box_dom_binding/bind_box_to_dom"
 export {bindBox, onMount} from "src/functions/base_tag"
 export {tag} from "src/functions/html_tag"

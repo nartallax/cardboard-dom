@@ -6,7 +6,7 @@ import {containerTag, tag} from "src/functions/html_tag"
 import {svgTag} from "src/functions/svg_tag"
 import {mismatchedNodesErrorCount} from "src/parts/binder"
 import {assertEquals, assertErrorTextMatches, assertFalsy, assertTruthy, sleep} from "test/test_utils"
-import {cssVariableBox, localStorageBox} from "src/cardboard-dom"
+import {cssVariableBox, localStorageBox, urlBox} from "src/cardboard-dom"
 
 export const testCases: {name: string, tester(): void | Promise<void>}[] = []
 
@@ -679,6 +679,8 @@ defineTestCase("container items sorting", async() => {
 })
 
 defineTestCase("insert of sub-node", async() => {
+	// this is not some random torture-test
+	// it happens sometimes with container nodes which consist of more complex nodes
 	const parent = tag()
 	const text = box("owo")
 	const child = tag([text])
@@ -688,4 +690,44 @@ defineTestCase("insert of sub-node", async() => {
 	await sleep(100)
 	assertFalsy(mismatchedNodesErrorCount, "have nodes in bad state")
 	parent.remove()
+})
+
+defineTestCase("urlbox", async() => {
+	window.history.replaceState(null, "", new URL("/", window.location + ""))
+	await sleep(100)
+
+	const b = box("")
+	bindBoxToDomValue(b, {type: "url", hash: true, path: true, search: true})
+	b.set("/path/to/page?a=b#thats_hash")
+	assertEquals(window.location.pathname, "/path/to/page")
+	assertEquals(window.location.search, "?a=b")
+	assertEquals(window.location.hash, "#thats_hash")
+	window.history.pushState(null, "", new URL("/owo/uwu#ayaya", window.location + ""))
+	assertEquals(b.get(), "/owo/uwu#ayaya")
+
+	const bb = urlBox({hash: true})
+	assertEquals(bb.get(), "#ayaya")
+	bb.set("#mimimi")
+	assertEquals(window.location.pathname, "/owo/uwu")
+	assertEquals(window.location.hash, "#mimimi")
+	bb.set("/path/maybe?or=search#kekeke")
+	assertEquals(window.location.pathname, "/owo/uwu")
+	assertEquals(window.location.search, "")
+	assertEquals(window.location.hash, "#kekeke")
+
+	window.location.hash = "#nya"
+	await sleep(100)
+	assertEquals(bb.get(), "#nya")
+
+	const bbb = urlBox({path: true})
+	assertEquals(bbb.get(), "/owo/uwu")
+	bbb.set("/uwu/owo?a=b#owo")
+	assertEquals(window.location.pathname, "/uwu/owo")
+	assertEquals(window.location.search, "")
+	assertEquals(window.location.hash, "#nya")
+
+	window.history.back()
+
+	await sleep(100)
+	assertEquals(bbb.get(), "/owo/uwu")
 })
