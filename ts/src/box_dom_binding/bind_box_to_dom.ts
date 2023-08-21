@@ -14,6 +14,8 @@ export type DomBoxOptionsBase = {
 
 type Options<T> = (LocalStorageBoxOptions<T> | CssVariableBoxOptions | (string extends T ? UrlOptions : never))
 
+// TODO: this box won't unsubscribe ever, which is bad.
+// we need special kind of box, that subscribes/unsubscribes to externals only when have subscription
 /** This function is a way to link arbitrary box to some of well-known DOM values,
  * like URL parts or local storage values
  *

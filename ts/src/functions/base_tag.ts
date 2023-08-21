@@ -1,4 +1,4 @@
-import {MRBox, RBox, isConstBox, isRBox, unbox} from "@nartallax/cardboard"
+import {BoxChangeHandler, MRBox, RBox, constBoxWrap, isConstBox, isRBox, unbox} from "@nartallax/cardboard"
 import {ClassNameParts, makeClassname} from "src/functions/classname"
 import {getBinder} from "src/node_binding"
 import {Binder} from "src/parts/binder"
@@ -148,9 +148,9 @@ function watch<T>(binder: Binder | null, node: Node, value: MRBox<T>, handler: (
 // watchAndRun cannot be substituted with just doing the actions and calling watch() with same box and node
 // because watchAndRun will also notify binder about last used value
 // this helps to avoid some weird situations and double-running of the same code
-export function watchAndRun<T>(binder: Binder | null, node: Node, value: MRBox<T>, handler: (value: T) => void): Binder | null {
+export function watchAndRun<T>(binder: Binder | null, node: Node, value: MRBox<T>, handler: BoxChangeHandler<T>): Binder | null {
 	if(!isRBox(value) || isConstBox(value)){
-		handler(unbox(value))
+		handler(unbox(value), constBoxWrap(value), undefined)
 		return binder
 	}
 
@@ -218,7 +218,55 @@ function updateChildren(parent: Node, newChildren: readonly Node[]): void {
 export function bindChildArrayToTag<T, K>(parent: Node, childItems: RBox<readonly T[]>, getKey: (item: T, index: number) => K, renderChild: (item: RBox<T>) => Node): void {
 	const arrayContext = childItems.getArrayContext(getKey)
 	const keyToChildMap = new Map<unknown, Node>()
-	watchAndRun(null, parent, childItems, childItems => {
+
+	watchAndRun(null, parent, childItems, (childItems, _, meta) => {
+		if(meta){
+			switch(meta.type){
+				case "array_item_update": {
+					// fully processed by array context, no action required
+					return
+				}
+
+				case "array_items_insert": {
+					const nextChild = parent.childNodes[meta.index]
+					for(let offset = 0; offset < meta.count; offset++){
+						const index = meta.index + offset
+						const key = getKey(childItems[index]!, index)
+						const child = renderChild(arrayContext.getBoxForKey(key))
+						keyToChildMap.set(key, child)
+						if(nextChild){
+							parent.insertBefore(child, nextChild)
+						} else {
+							parent.appendChild(child)
+						}
+					}
+					return
+				}
+
+				case "array_items_delete": {
+					for(const {index, value} of meta.indexValuePairs){
+						const key = getKey(value as T, index)
+						const child = keyToChildMap.get(key)
+						if(!child){
+							throw new Error("Tried to delete child at key " + key + ", but there's no item for that key.")
+						}
+						parent.removeChild(child)
+						keyToChildMap.delete(key)
+					}
+					return
+				}
+
+				case "array_items_delete_all": {
+					while(parent.firstChild){
+						parent.removeChild(parent.firstChild)
+					}
+					keyToChildMap.clear()
+					return
+				}
+
+			}
+		}
+
 		const newChildArray: Node[] = new Array(childItems.length)
 		const outdatedKeys = new Set(keyToChildMap.keys())
 		for(let i = 0; i < childItems.length; i++){

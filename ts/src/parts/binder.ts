@@ -1,12 +1,12 @@
-import {RBox} from "@nartallax/cardboard"
+import {BoxChangeHandler, BoxUpdateMeta, RBox} from "@nartallax/cardboard"
 
 const noValue = Symbol("cardboard-dom-binder-no-value")
 type NoValue = typeof noValue
 
 interface WatchedBox<T = unknown>{
 	readonly box: RBox<T>
-	handler(value: T): void
-	readonly handlerWrap: ((value: T) => void)
+	handler: BoxChangeHandler<T>
+	readonly handlerWrap: BoxChangeHandler<T>
 	lastKnownValue: T | NoValue
 }
 
@@ -65,7 +65,7 @@ export class Binder {
 				const value = boxWrap.box.get()
 				boxWrap.box.subscribe(boxWrap.handlerWrap)
 				if(boxWrap.lastKnownValue !== value){
-					this.invokeBoxHandler(value, boxWrap)
+					this.invokeBoxHandler(value, boxWrap, undefined)
 				}
 			}
 		}
@@ -114,33 +114,33 @@ export class Binder {
 		}
 	}
 
-	private invokeBoxHandler<T>(value: T, box: WatchedBox<T>): void {
-		box.handler(value)
+	private invokeBoxHandler<T>(value: T, box: WatchedBox<T>, meta: BoxUpdateMeta | undefined): void {
+		box.handler(value, box.box, meta)
 		box.lastKnownValue = value
 	}
 
-	private subscribe<T>(box: RBox<T>, handler: (value: T) => void): WatchedBox {
-		const boxWrap: WatchedBox = {
+	private subscribe<T>(box: RBox<T>, handler: BoxChangeHandler<T>): WatchedBox<T> {
+		const boxWrap: WatchedBox<T> = {
 			box,
 			handler,
 			lastKnownValue: noValue,
 			// wonder if creating a handler wrapper is more performant than storing lastKnownValue and handler in map
-			handlerWrap: v => this.invokeBoxHandler(v, boxWrap)
+			handlerWrap: (v, _, meta) => this.invokeBoxHandler(v, boxWrap, meta)
 		}
 		if(this.isInDom){
 			boxWrap.box.subscribe(boxWrap.handlerWrap)
 		}
-		(this.watchedBoxes ||= []).push(boxWrap)
+		(this.watchedBoxes ||= []).push(boxWrap as WatchedBox)
 		return boxWrap
 	}
 
-	watch<T>(box: RBox<T>, handler: (value: T) => void): void {
+	watch<T>(box: RBox<T>, handler: BoxChangeHandler<T>): void {
 		this.subscribe(box, handler)
 	}
 
-	watchAndRun<T>(box: RBox<T>, handler: (value: T) => void): void {
+	watchAndRun<T>(box: RBox<T>, handler: BoxChangeHandler<T>): void {
 		const boxWrap = this.subscribe(box, handler)
-		this.invokeBoxHandler(box.get(), boxWrap)
+		this.invokeBoxHandler(box.get(), boxWrap, undefined)
 	}
 
 	unwatch<T>(box: RBox<T>, handler: (value: T) => void): void {

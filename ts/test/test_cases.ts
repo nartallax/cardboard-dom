@@ -1,4 +1,4 @@
-import {RBox, WBox, box, viewBox} from "@nartallax/cardboard"
+import {RBox, WBox, box, calcBox} from "@nartallax/cardboard"
 import {defineControl} from "src/functions/control"
 import {bindBox, onMount} from "src/functions/base_tag"
 import {bindBoxToDomValue} from "src/box_dom_binding/bind_box_to_dom"
@@ -222,7 +222,7 @@ defineTestCase("lora list rerendering when paramset is toggled", async() => {
 	const LoraLabel = (b: RBox<string>) => tag({class: "lora"}, [b])
 	const LoraList = (b: RBox<string[]>) => containerTag({class: "loralist"}, b, x => x, x => LoraLabel(x))
 	const ParamList = (name: RBox<string>) => {
-		const loraList = viewBox(() => name.get() === "a" ? [] : loras.get())
+		const loraList = calcBox([name], name => name === "a" ? [] : loras.get())
 		return LoraList(loraList)
 	}
 
@@ -730,4 +730,51 @@ defineTestCase("urlbox", async() => {
 
 	await sleep(100)
 	assertEquals(bbb.get(), "/owo/uwu")
+})
+
+defineTestCase("array item update", async() => {
+	const a = box([1, 2, 3])
+	const context = a.getArrayContext((_, i) => i)
+	const b = context.getBoxForKey(1)
+
+	const el = containerTag(a, (_, i) => i, text => tag([text]))
+	await sleep(100)
+	document.body.appendChild(el)
+
+	assertEquals(el.textContent, "123")
+	b.set(5)
+	assertEquals(el.textContent, "153")
+	el.remove()
+})
+
+defineTestCase("array item insert", async() => {
+	const a = box([1, 2])
+
+	const el = containerTag(a, x => x, text => tag([text]))
+	await sleep(100)
+	document.body.appendChild(el)
+
+	assertEquals(el.textContent, "12")
+	a.insertElementAtIndex(2, 3)
+	assertEquals(el.textContent, "123")
+	a.insertElementAtIndex(1, 4)
+	assertEquals(el.textContent, "1423")
+	el.remove()
+})
+
+defineTestCase("array item delete", async() => {
+	const a = box([1, 2, 3, 4, 5])
+
+	const el = containerTag(a, x => x, text => tag([text]))
+	await sleep(100)
+	document.body.appendChild(el)
+
+	assertEquals(el.textContent, "12345")
+	a.deleteElementAtIndex(3)
+	assertEquals(el.textContent, "1235")
+	a.deleteElementsAtIndex(1, 2)
+	assertEquals(el.textContent, "15")
+	a.deleteAllElements()
+	assertEquals(el.textContent, "")
+	el.remove()
 })
