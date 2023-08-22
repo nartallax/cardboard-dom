@@ -11,9 +11,7 @@ npm install @nartallax/cardboard-dom
 
 Note that `@nartallax/cardboard` is a peer dependency and must be installed first.  
 
-## Usage
-
-### Rendering DOM elements
+## Usage: rendering DOM elements
 
 First function you need to know of is `tag`.  
 `tag` creates an HTML element with parameters you provide:
@@ -35,7 +33,7 @@ const root = tag({class: "root-container"}, [
 document.body.append(root)
 ```
 
-### Using boxes: general idea
+## Using boxes: general idea
 
 Now to the main feature of this library - how to subscribe to box without making memory leak.  
 To do that, this library allows to bind box to an DOM node. When the node is inserted into DOM - library will subscribe to the box; when the node is removed - library will unsubscribe. This way a box is never subscribed to unless it can actually do something with DOM.  
@@ -61,7 +59,7 @@ unbindBox(nameEl, handler)
 
 Subscribing to boxes directly (like, with `.subscribe()` method) is still an option, but you almost never really need it. Direct call of `.subscribe()` should be avoided, because that's the way to create an accidental memory leak.
 
-### Using boxes: shortcuts
+## Using boxes: shortcuts
 
 But that's a bit tedious, to bind each individual box.  
 Fortunately, `tag` allows you to pass boxes in place of most values:  
@@ -93,7 +91,7 @@ Passing box in place of value is equivalent to passing just value, and then bind
 As it says above, you cannot pass a box containing an `HTMLElement` as child to `tag`.  
 This is a design choice; boxes exist to store data, and `HTMLElement` is a product of processing that boxed data into something that you can show to the user. It is extension of original Cardboard rule "don't put box into box".  
 
-### Container tags
+## Container tags
 
 Working with arrays is hard.  
 Fortunately, this library has a solution for that - container tags:  
@@ -127,7 +125,7 @@ let el = containerTag(
 document.body.append(el)
 ```
 
-### Controls
+## Controls
 
 Controls (also called components in other UI frameworks) are a way to organise your code.  
 They are totally optional, you can just render everything in your `main()` function, but that's not very nice, is it?  
@@ -172,7 +170,7 @@ export const Button = defineControl((props: ButtonProps, otherChildren) => {
 let myButton = Button() // look, no props!
 ```
 
-### Using boxes: other DOM values
+## Using boxes: other DOM values
 
 There are other values in DOM that are not (always) bound to elements you can render: page location, local storage, CSS variables.  
 To interface with them, an overload of `bindBox` exists:
@@ -212,7 +210,7 @@ import {urlBox} from "@nartallax/cardboard-dom"
 const pathBox = urlBox(document.body, {path: true})
 ```
 
-### Handling DOM insertion/removal
+## Handling DOM insertion/removal
 
 If you need to do something smart with DOM nodes, that will require you to wait for adding/removing node from DOM - you can use `onMount` function:
 
