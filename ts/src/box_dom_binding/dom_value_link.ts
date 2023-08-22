@@ -20,15 +20,20 @@ export abstract class DomValueLink<T, R = unknown, O extends DomBoxOptionsBase =
 
 	private readonly subscribeDomBound: () => void
 	private readonly unsubscribeDomBound: () => void
-	private readonly updateDomValueBound: (value: T) => void
+	private readonly tryUpdateDomValueBound: (value: T) => void
 	protected readonly updateBoxValueBound: () => void
 	private lastKnownRawDomValue: R | typeof NoValueKnown = NoValueKnown
+	readonly options: O
 
-	constructor(readonly box: RBox<T>, readonly options: O) {
+	constructor(readonly box: RBox<T>, options: O) {
 		this.subscribeDomBound = this.subscribeToDomValue.bind(this)
 		this.unsubscribeDomBound = this.unsubscribeFromDomValue.bind(this)
-		this.updateDomValueBound = this.updateDomValue.bind(this)
+		this.tryUpdateDomValueBound = this.tryUpdateDomValue.bind(this)
 		this.updateBoxValueBound = this.updateBoxValue.bind(this)
+		this.options = {
+			...options,
+			preferBoxValue: options.preferBoxValue || !isWBox(box)
+		}
 	}
 
 	private canPushUpdates(): boolean {
@@ -48,6 +53,16 @@ export abstract class DomValueLink<T, R = unknown, O extends DomBoxOptionsBase =
 		this.box.set(this.parseDomValue(rawValue))
 	}
 
+	private tryUpdateDomValue(value: T): void {
+		const rawDomValue = this.getRawDomValue()
+		if(rawDomValue !== this.lastKnownRawDomValue && !this.options.preferBoxValue){
+			return // we don't actually update anything here. we expect box value to be updated in other handler
+		}
+
+		this.updateDomValue(value)
+		this.lastKnownRawDomValue = this.getRawDomValue()
+	}
+
 	bind(binder: Binder): void {
 		if(this.canPushUpdates()){
 			binder.onInserted(this.updateBoxValueBound)
@@ -59,20 +74,21 @@ export abstract class DomValueLink<T, R = unknown, O extends DomBoxOptionsBase =
 			this.subscribeToDomValue()
 		}
 
-		if(this.options.preferOriginalValue || !isWBox(this.box)){
-			binder.watchAndRun(this.box, this.updateDomValueBound)
+		if(this.options.preferBoxValue || !isWBox(this.box)){
+			binder.watchAndRun(this.box, this.tryUpdateDomValueBound)
 		} else {
-			binder.watch(this.box, this.updateDomValueBound)
+			binder.watch(this.box, this.tryUpdateDomValueBound)
 			this.updateBoxValue()
 		}
 	}
 
 	unbind(binder: Binder): void {
 		if(this.canPushUpdates()){
+			binder.offInserted(this.updateBoxValueBound)
 			binder.offInserted(this.subscribeDomBound)
 			binder.offRemoved(this.unsubscribeDomBound)
 		}
-		binder.unwatch(this.updateDomValueBound)
+		binder.unwatch(this.tryUpdateDomValueBound)
 	}
 
 }

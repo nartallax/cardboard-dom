@@ -11,7 +11,7 @@ export type CssVariableBoxOptions = DomBoxOptionsBase & {
 export class CssVariableBoxLink<T> extends DomValueLink<T, string, CssVariableBoxOptions> {
 
 	constructor(box: RBox<T>, options: CssVariableBoxOptions) {
-		const opts: CssVariableBoxOptions = {...options, preferOriginalValue: options.preferOriginalValue ?? true}
+		const opts: CssVariableBoxOptions = {...options, preferBoxValue: options.preferBoxValue ?? true}
 		super(box, opts)
 	}
 

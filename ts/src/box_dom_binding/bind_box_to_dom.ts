@@ -6,12 +6,12 @@ import {UrlBoxDomLink, UrlOptions} from "src/box_dom_binding/url_box"
 import {getBinder} from "src/node_binding"
 
 export type DomBoxOptionsBase = {
-	/** If true and the box is wbox, don't override original value right after invocation
-	 * Value may be overwritten later, if DOM API supports watching the value
-	 *
-	 * Setting this flag also means that instead of overwriting value of the box, DOM value will be overwritten
-	 * (because box must be in sync with DOM value) */
-	readonly preferOriginalValue?: boolean
+	/** This flag is used when resolving conflicts between DOM value and box value
+	 * like, "we have new box value and new DOM value, what should happen?"
+	 * If the flag is false (default) - that means box value will be overwritten by DOM value
+	 * If the flag is true - DOM value will be overwritten
+	 * ...or you can just pass an RBox, which cannot be overwritten and will always have preference */
+	readonly preferBoxValue?: boolean
 }
 
 export type DomBoxBindingOptions<T> = (LocalStorageBoxOptions<T> | CssVariableBoxOptions | (string extends T ? UrlOptions : never))

@@ -38,7 +38,7 @@ export function localStorageBox<T>(node: Node, key: string, initialValue: T, opt
 	bindBoxToDomValue(node, result, {
 		parse: value => JSON.parse(value + ""),
 		serialize: value => JSON.stringify(value),
-		preferOriginalValue: localStorage.getItem(key) === null,
+		preferBoxValue: localStorage.getItem(key) === null,
 		...(options || {}),
 		key,
 		type: "localStorage"

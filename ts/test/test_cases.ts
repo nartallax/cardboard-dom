@@ -64,7 +64,7 @@ const jsonParseSerialize = {
 
 defineTestCase("local storage box", async() => {
 	const key = "test-local-storage-value"
-	const el = tag() // TODO: test: bind first, append later
+	const el = tag()
 	document.body.appendChild(el)
 	localStorage.removeItem(key)
 	try {
@@ -76,6 +76,27 @@ defineTestCase("local storage box", async() => {
 		assertEquals(localStorage.getItem(key), "{\"a\":5,\"b\":10}")
 		b.set({a: 6, b: 15})
 		assertEquals(localStorage.getItem(key), "{\"a\":6,\"b\":15}")
+	} finally {
+		el.remove()
+		localStorage.removeItem(key)
+	}
+})
+
+defineTestCase("local storage box: bind first, append later", async() => {
+	const key = "test-local-storage-value-5"
+	const el = tag()
+	localStorage.removeItem(key)
+	try {
+		const b = box({a: 5, b: 10})
+		bindBoxToDomValue(el, b, {type: "localStorage", key, ...jsonParseSerialize})
+		assertEquals(b.get(), null)
+		b.set({a: 5, b: 10})
+		assertEquals(b.get().a, 5)
+		assertEquals(localStorage.getItem(key), null)
+		document.body.append(el)
+		assertEquals(localStorage.getItem(key), "{\"a\":5,\"b\":10}")
+		// b.set({a: 6, b: 15})
+		// assertEquals(localStorage.getItem(key), "{\"a\":6,\"b\":15}")
 	} finally {
 		el.remove()
 		localStorage.removeItem(key)
@@ -106,7 +127,7 @@ defineTestCase("local storage box: sets value to local storage on creation", asy
 	try {
 		localStorage.setItem(key, "\"ayaya\"")
 		const b = box("owo")
-		bindBoxToDomValue(el, b, {type: "localStorage", key, preferOriginalValue: true, ...jsonParseSerialize})
+		bindBoxToDomValue(el, b, {type: "localStorage", key, preferBoxValue: true, ...jsonParseSerialize})
 		assertEquals(b.get(), "owo")
 		assertEquals(localStorage.getItem(key), "\"owo\"")
 	} finally {
@@ -126,6 +147,8 @@ defineTestCase("local storage box: sets value to local storage on creation if rb
 		bindBoxToDomValue(el, b, {type: "localStorage", key, ...jsonParseSerialize})
 		assertEquals(b.get(), "owoowo")
 		assertEquals(localStorage.getItem(key), "\"owoowo\"")
+		a.set("uwu")
+		assertEquals(localStorage.getItem(key), "\"uwuuwu\"")
 	} finally {
 		localStorage.removeItem(key)
 		el.remove()
@@ -758,10 +781,22 @@ defineTestCase("urlbox", async() => {
 	assertEquals(window.location.hash, "#nya")
 
 	window.history.back()
-
 	await sleep(100)
 	assertEquals(bbb.get(), "/owo/uwu")
 	el.remove()
+
+	const el2 = tag()
+	const bbbb = urlBox(el2, {path: true})
+	assertEquals(bbbb.get(), "/owo/uwu")
+
+	window.history.back()
+	await sleep(100)
+	assertEquals(bbbb.get(), "/owo/uwu")
+
+	document.body.append(el2)
+	assertEquals(bbbb.get(), "/path/to/page")
+
+	el2.remove()
 })
 
 defineTestCase("array item update", async() => {
