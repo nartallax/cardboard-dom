@@ -1,12 +1,12 @@
 import {RBox, WBox, box, calcBox} from "@nartallax/cardboard"
 import {defineControl} from "src/functions/control"
 import {bindBoxWithHandler, onMount} from "src/functions/base_tag"
-import {bindBoxToDomValue} from "src/box_dom_binding/bind_box_to_dom"
+import {DomBoxBindingOptions, bindBoxToDomValue} from "src/box_dom_binding/bind_box_to_dom"
 import {containerTag, tag} from "src/functions/html_tag"
 import {svgTag} from "src/functions/svg_tag"
 import {mismatchedNodesErrorCount} from "src/parts/binder"
 import {assertEquals, assertErrorTextMatches, assertFalsy, assertTruthy, sleep} from "test/test_utils"
-import {cssVariableBox, localStorageBox, urlBox} from "src/cardboard-dom"
+import {bindBox, cssVariableBox, localStorageBox, unbindBox, urlBox} from "src/cardboard-dom"
 
 export const testCases: {name: string, tester(): void | Promise<void>}[] = []
 
@@ -695,7 +695,7 @@ defineTestCase("cssVariableBox", () => {
 	document.body.appendChild(el)
 	const b = box("5px")
 	const key = "--my-var"
-	bindBoxToDomValue(el, b, {type: "cssVariable", name: key, element: el})
+	bindBoxToDomValue(el, b, {type: "cssVariable", name: key})
 	assertEquals(el.style.getPropertyValue(key), "5px")
 	b.set("10px")
 	assertEquals(el.style.getPropertyValue(key), "10px")
@@ -706,7 +706,7 @@ defineTestCase("cssVariableBox: shorthand", () => {
 	const el = tag()
 	document.body.appendChild(el)
 	const key = "--my-var"
-	const b = cssVariableBox(el, key, "6px", {element: el})
+	const b = cssVariableBox(el, key, "6px")
 	assertEquals(el.style.getPropertyValue(key), "6px")
 	b.set("8px")
 	assertEquals(el.style.getPropertyValue(key), "8px")
@@ -785,6 +785,8 @@ defineTestCase("urlbox", async() => {
 	assertEquals(bbb.get(), "/owo/uwu")
 	el.remove()
 
+
+
 	const el2 = tag()
 	const bbbb = urlBox(el2, {path: true})
 	assertEquals(bbbb.get(), "/owo/uwu")
@@ -797,6 +799,24 @@ defineTestCase("urlbox", async() => {
 	assertEquals(bbbb.get(), "/path/to/page")
 
 	el2.remove()
+
+
+
+	const el3 = tag()
+	document.body.append(el3)
+
+	const c = box("")
+	const opts: DomBoxBindingOptions<string> = {type: "url", hash: true}
+	bindBox(el3, c, opts)
+
+	window.location.hash = "#321"
+	await sleep(100)
+	assertEquals(c.get(), "#321")
+
+	unbindBox(el3, opts)
+	window.location.hash = "#444"
+	await sleep(100)
+	assertEquals(c.get(), "#321")
 })
 
 defineTestCase("array item update", async() => {
@@ -844,4 +864,24 @@ defineTestCase("array item delete", async() => {
 	a.deleteAllElements()
 	assertEquals(el.textContent, "")
 	el.remove()
+})
+
+defineTestCase("unbind box with handler", () => {
+	let lastKnownValue: string | null = null
+	const handler = (x: string) => {
+		lastKnownValue = x
+	}
+
+	const el = tag()
+	document.body.append(el)
+
+	const b = box("uwu")
+
+	bindBox(el, b, handler)
+	b.set("owo")
+	assertEquals(lastKnownValue, "owo")
+
+	unbindBox(el, handler)
+	b.set("ayaya")
+	assertEquals(lastKnownValue, "owo")
 })

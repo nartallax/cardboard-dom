@@ -44,7 +44,6 @@ export function bindBox<T>(node: Node, box: MRBox<T>, a: DomBoxBindingOptions<T>
 	}
 }
 
-// TODO: test it
 export function unbindBox<T>(node: Node, handler: (value: T) => void): void
 export function unbindBox<T>(node: Node, options: DomBoxBindingOptions<T>): void
 export function unbindBox<T>(node: Node, a: DomBoxBindingOptions<T> | ((value: T) => void)): void {

@@ -22,7 +22,7 @@ export function bindBoxToDomValue<T>(node: Node, box: MRBox<T>, options: DomBoxB
 	let link: DomValueLink<T>
 	switch(options.type){
 		case "localStorage": link = new LocalStorageDomLink(wrappedBox, options); break
-		case "cssVariable": link = new CssVariableBoxLink(wrappedBox, options); break
+		case "cssVariable": link = new CssVariableBoxLink(node, wrappedBox, options); break
 		case "url": link = new UrlBoxDomLink(wrappedBox as RBox<string>, options) as unknown as DomValueLink<T>; break
 	}
 	binder.addDomValueLink(link)

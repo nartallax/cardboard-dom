@@ -65,8 +65,8 @@ export class UrlBoxDomLink extends DomValueLink<string, string, UrlOptions> {
 
 		historyUpdateWatcher.subscribe(handler)
 
-		// TODO: do I need this? check
 		if(this.options.hash){
+			// setting url through window.location.hash = "#123" won't trigger history api
 			window.addEventListener("hashchange", handler)
 		}
 	}

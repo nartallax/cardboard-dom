@@ -1,18 +1,25 @@
-import {RBox, WBox, box} from "@nartallax/cardboard"
+import {RBox, WBox, box, isWBox} from "@nartallax/cardboard"
 import {DomBoxOptionsBase, bindBoxToDomValue} from "src/box_dom_binding/bind_box_to_dom"
 import {DomValueLink} from "src/box_dom_binding/dom_value_link"
 
 export type CssVariableBoxOptions = DomBoxOptionsBase & {
 	readonly type: "cssVariable"
 	readonly name: string
-	readonly element?: HTMLElement // TODO: use target element as default?
+	readonly element?: HTMLElement
 }
 
 export class CssVariableBoxLink<T> extends DomValueLink<T, string, CssVariableBoxOptions> {
 
-	constructor(box: RBox<T>, options: CssVariableBoxOptions) {
-		const opts: CssVariableBoxOptions = {...options, preferBoxValue: options.preferBoxValue ?? true}
-		super(box, opts)
+	constructor(private readonly node: Node, box: RBox<T>, options: CssVariableBoxOptions) {
+		if(isWBox(box)){
+			// never try to put anything in this box
+			box = box.map(x => x)
+		}
+		super(box, options)
+	}
+
+	private get element(): HTMLElement {
+		return this.options.element ?? (this.node instanceof HTMLElement ? this.node : null) ?? document.body
 	}
 
 	protected getRawDomValue(): string {
@@ -20,13 +27,12 @@ export class CssVariableBoxLink<T> extends DomValueLink<T, string, CssVariableBo
 	}
 
 	protected updateDomValue(value: T): void {
-		const el = this.options.element ?? document.body
 		const name = this.options.name
 
 		if(value === null || value === undefined || value === "" || (typeof(value) !== "string" && typeof(value) !== "number")){
-			el.style.removeProperty(name)
+			this.element.style.removeProperty(name)
 		} else {
-			el.style.setProperty(name, value + "")
+			this.element.style.setProperty(name, value + "")
 		}
 	}
 
