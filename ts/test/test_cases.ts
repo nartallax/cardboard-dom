@@ -1,6 +1,6 @@
 import {RBox, WBox, box, calcBox} from "@nartallax/cardboard"
 import {defineControl} from "src/functions/control"
-import {bindBox, onMount} from "src/functions/base_tag"
+import {bindBoxWithHandler, onMount} from "src/functions/base_tag"
 import {bindBoxToDomValue} from "src/box_dom_binding/bind_box_to_dom"
 import {containerTag, tag} from "src/functions/html_tag"
 import {svgTag} from "src/functions/svg_tag"
@@ -57,70 +57,94 @@ defineTestCase("unsubscribe from box when element is removed from DOM", async() 
 	assertEquals(callsCount, 3)
 })
 
+const jsonParseSerialize = {
+	parse: (value: any) => JSON.parse(value + ""),
+	serialize: (value: any) => JSON.stringify(value)
+}
+
 defineTestCase("local storage box", async() => {
 	const key = "test-local-storage-value"
+	const el = tag() // TODO: test: bind first, append later
+	document.body.appendChild(el)
+	localStorage.removeItem(key)
 	try {
 		const b = box({a: 5, b: 10})
-		bindBoxToDomValue(b, {type: "localStorage", key})
+		bindBoxToDomValue(el, b, {type: "localStorage", key, ...jsonParseSerialize})
+		assertEquals(b.get(), null)
+		b.set({a: 5, b: 10})
 		assertEquals(b.get().a, 5)
 		assertEquals(localStorage.getItem(key), "{\"a\":5,\"b\":10}")
 		b.set({a: 6, b: 15})
 		assertEquals(localStorage.getItem(key), "{\"a\":6,\"b\":15}")
 	} finally {
+		el.remove()
 		localStorage.removeItem(key)
 	}
 })
 
 defineTestCase("local storage box: loads value from local storage on creation", async() => {
 	const key = "test-local-storage-value-2"
+	const el = tag()
+	document.body.appendChild(el)
 	try {
 		localStorage.setItem(key, "\"ayaya\"")
 		const b = box("owo")
-		bindBoxToDomValue(b, {type: "localStorage", key})
+		bindBoxToDomValue(el, b, {type: "localStorage", key, ...jsonParseSerialize})
 		assertEquals(b.get(), "ayaya")
 		b.set("uwu")
 		assertEquals(localStorage.getItem(key), "\"uwu\"")
 	} finally {
+		el.remove()
 		localStorage.removeItem(key)
 	}
 })
 
 defineTestCase("local storage box: sets value to local storage on creation", async() => {
 	const key = "test-local-storage-value-3"
+	const el = tag()
+	document.body.appendChild(el)
 	try {
 		localStorage.setItem(key, "\"ayaya\"")
 		const b = box("owo")
-		bindBoxToDomValue(b, {type: "localStorage", key, preferOriginalValue: true})
+		bindBoxToDomValue(el, b, {type: "localStorage", key, preferOriginalValue: true, ...jsonParseSerialize})
 		assertEquals(b.get(), "owo")
 		assertEquals(localStorage.getItem(key), "\"owo\"")
 	} finally {
 		localStorage.removeItem(key)
+		el.remove()
 	}
 })
 
 defineTestCase("local storage box: sets value to local storage on creation if rbox", async() => {
 	const key = "test-local-storage-value-4"
+	const el = tag()
+	document.body.appendChild(el)
 	try {
 		localStorage.setItem(key, "\"ayaya\"")
 		const a = box("owo")
 		const b = a.map(x => x + x)
-		bindBoxToDomValue(b, {type: "localStorage", key})
+		bindBoxToDomValue(el, b, {type: "localStorage", key, ...jsonParseSerialize})
 		assertEquals(b.get(), "owoowo")
 		assertEquals(localStorage.getItem(key), "\"owoowo\"")
 	} finally {
 		localStorage.removeItem(key)
+		el.remove()
 	}
 })
 
 defineTestCase("localstoragebox: shorthand function", () => {
 	const key = "test-local-storage-value-5"
+	const el = tag()
+	document.body.appendChild(el)
 	try {
-		const b = localStorageBox("ayaya", key)
+		localStorage.removeItem(key)
+		const b = localStorageBox(el, key, "ayaya")
 		assertEquals(localStorage.getItem(key), "\"ayaya\"")
 		b.set("uwu")
 		assertEquals(localStorage.getItem(key), "\"uwu\"")
 	} finally {
 		localStorage.removeItem(key)
+		el.remove()
 	}
 })
 
@@ -243,7 +267,7 @@ defineTestCase("whileMounted", async() => {
 
 	const Label = () => {
 		const result = tag()
-		bindBox(result, text, text => result.textContent = text)
+		bindBoxWithHandler(result, text, text => result.textContent = text)
 		assertEquals(result.textContent, "uwu")
 		return result
 	}
@@ -645,21 +669,25 @@ defineTestCase("onMount() in DOM: call", () => {
 
 defineTestCase("cssVariableBox", () => {
 	const el = tag()
+	document.body.appendChild(el)
 	const b = box("5px")
 	const key = "--my-var"
-	bindBoxToDomValue(b, {type: "cssVariable", name: key, element: el})
+	bindBoxToDomValue(el, b, {type: "cssVariable", name: key, element: el})
 	assertEquals(el.style.getPropertyValue(key), "5px")
 	b.set("10px")
 	assertEquals(el.style.getPropertyValue(key), "10px")
+	el.remove()
 })
 
 defineTestCase("cssVariableBox: shorthand", () => {
 	const el = tag()
+	document.body.appendChild(el)
 	const key = "--my-var"
-	const b = cssVariableBox("6px", key, {element: el})
+	const b = cssVariableBox(el, key, "6px", {element: el})
 	assertEquals(el.style.getPropertyValue(key), "6px")
 	b.set("8px")
 	assertEquals(el.style.getPropertyValue(key), "8px")
+	el.remove()
 })
 
 defineTestCase("container items sorting", async() => {
@@ -693,19 +721,22 @@ defineTestCase("insert of sub-node", async() => {
 })
 
 defineTestCase("urlbox", async() => {
+	const el = tag()
+	document.body.appendChild(el)
 	window.history.replaceState(null, "", new URL("/", window.location + ""))
 	await sleep(100)
 
 	const b = box("")
-	bindBoxToDomValue(b, {type: "url", hash: true, path: true, search: true})
+	bindBoxToDomValue(el, b, {type: "url", hash: true, path: true, search: true})
 	b.set("/path/to/page?a=b#thats_hash")
 	assertEquals(window.location.pathname, "/path/to/page")
 	assertEquals(window.location.search, "?a=b")
 	assertEquals(window.location.hash, "#thats_hash")
 	window.history.pushState(null, "", new URL("/owo/uwu#ayaya", window.location + ""))
+	await sleep(100)
 	assertEquals(b.get(), "/owo/uwu#ayaya")
 
-	const bb = urlBox({hash: true})
+	const bb = urlBox(el, {hash: true})
 	assertEquals(bb.get(), "#ayaya")
 	bb.set("#mimimi")
 	assertEquals(window.location.pathname, "/owo/uwu")
@@ -719,7 +750,7 @@ defineTestCase("urlbox", async() => {
 	await sleep(100)
 	assertEquals(bb.get(), "#nya")
 
-	const bbb = urlBox({path: true})
+	const bbb = urlBox(el, {path: true})
 	assertEquals(bbb.get(), "/owo/uwu")
 	bbb.set("/uwu/owo?a=b#owo")
 	assertEquals(window.location.pathname, "/uwu/owo")
@@ -730,6 +761,7 @@ defineTestCase("urlbox", async() => {
 
 	await sleep(100)
 	assertEquals(bbb.get(), "/owo/uwu")
+	el.remove()
 })
 
 defineTestCase("array item update", async() => {

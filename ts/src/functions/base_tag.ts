@@ -129,11 +129,16 @@ function setAttribute(tagBase: Element, attrName: string, value: Attributes[stri
 	}
 }
 
-/** This function is a way to subscribe to arbitrary box without making memory leak
- * Subscriptions will only be called when the component is in the DOM
- * (with the only exception being first immediate call, which will happen regardless of mount state) */
-export function bindBox<T>(el: Element, box: MRBox<T>, handler: (value: T) => void, opts?: {dontCallImmediately?: boolean}): void {
+export interface BoxHandlerBindingOptions {
+	readonly dontCallImmediately?: boolean
+}
+
+export function bindBoxWithHandler<T>(el: Node, box: MRBox<T>, handler: (value: T) => void, opts?: BoxHandlerBindingOptions): void {
 	(opts?.dontCallImmediately ? watch : watchAndRun)(null, el, box, handler)
+}
+
+export function unbindBoxWithHandler<T>(el: Node, handler: (value: T) => void): void {
+	getBinder(el).unwatch(handler)
 }
 
 function watch<T>(binder: Binder | null, node: Node, value: MRBox<T>, handler: (value: T) => void): Binder | null {

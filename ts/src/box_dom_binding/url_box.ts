@@ -1,5 +1,6 @@
-import {RBox, WBox, box, isWBox} from "@nartallax/cardboard"
-import {DomBoxOptionsBase} from "src/box_dom_binding/bind_box_to_dom"
+import {WBox, box} from "@nartallax/cardboard"
+import {DomBoxOptionsBase, bindBoxToDomValue} from "src/box_dom_binding/bind_box_to_dom"
+import {DomValueLink} from "src/box_dom_binding/dom_value_link"
 import {historyUpdateWatcher} from "src/monkeypatching/history_monkeypatching"
 
 export type UrlOptions = DomBoxOptionsBase & {
@@ -10,38 +11,41 @@ export type UrlOptions = DomBoxOptionsBase & {
 	readonly history?: "replace" | "push"
 }
 
-export function bindBoxToUrl(box: RBox<string>, options: UrlOptions): void {
-	const historyAction = options.history ?? "replace"
+export class UrlBoxDomLink extends DomValueLink<string, string, UrlOptions> {
 
-	const assembleValue = () => {
-		const url = window.location
+	protected getRawDomValue(): string {
+		return window.location + ""
+	}
+
+	protected parseDomValue(raw: string): string {
+		const url = new URL(raw)
 
 		let result = ""
-		if(options.path){
+		if(this.options.path){
 			result += url.pathname
 		}
-		if(options.search){
+		if(this.options.search){
 			result += url.search
 		}
-		if(options.hash){
+		if(this.options.hash){
 			result += url.hash
 		}
 
 		return result
 	}
 
-	const tryPutValueIntoUrl = (value: string) => {
+	protected updateDomValue(value: string): void {
 		const url = new URL(value, window.location + "")
 
 		// we won't overwrite existing search/path if this is not explicitly enabled
 		// even if user puts something that resembles search/path
-		if(!options.search){
+		if(!this.options.search){
 			url.search = window.location.search
 		}
-		if(!options.path){
+		if(!this.options.path){
 			url.pathname = window.location.pathname
 		}
-		if(!options.hash){
+		if(!this.options.hash){
 			url.hash = window.location.hash
 		}
 
@@ -49,35 +53,38 @@ export function bindBoxToUrl(box: RBox<string>, options: UrlOptions): void {
 			return
 		}
 
-		if(historyAction === "replace"){
-			window.history.pushState(null, "", url)
-		} else {
+		if((this.options.history ?? "replace") === "replace"){
 			window.history.replaceState(null, "", url)
+		} else {
+			window.history.pushState(null, "", url)
 		}
 	}
 
-	if(isWBox(box)){
-		if(!options.preferOriginalValue){
-			box.set(assembleValue())
-		}
+	protected subscribeToDomValue(): void {
+		const handler = this.updateBoxValueBound
 
-		if(options.path || options.search){
-			historyUpdateWatcher.subscribe(() => box.set(assembleValue()))
-		}
+		historyUpdateWatcher.subscribe(handler)
 
-		if(options.hash){
-			window.addEventListener("hashchange", () => box.set(assembleValue()))
+		// TODO: do I need this? check
+		if(this.options.hash){
+			window.addEventListener("hashchange", handler)
 		}
 	}
 
-	box.subscribe(tryPutValueIntoUrl)
-	if(options.preferOriginalValue){
-		tryPutValueIntoUrl(box.get())
+	protected unsubscribeFromDomValue(): void {
+		const handler = this.updateBoxValueBound
+
+		historyUpdateWatcher.unsubscribe(handler)
+
+		if(this.options.hash){
+			window.removeEventListener("hashchange", handler)
+		}
 	}
+
 }
 
-export function urlBox(options: Omit<UrlOptions, "type" | "preferOriginalValue">): WBox<string> {
+export function urlBox(node: Node, options: Omit<UrlOptions, "type" | "preferOriginalValue">): WBox<string> {
 	const result = box("")
-	bindBoxToUrl(result, {...options, type: "url"})
+	bindBoxToDomValue(node, result, {...options, type: "url"})
 	return result
 }

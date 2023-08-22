@@ -1,4 +1,6 @@
 import {BoxChangeHandler, BoxUpdateMeta, RBox} from "@nartallax/cardboard"
+import {DomBoxOptionsBase} from "src/box_dom_binding/bind_box_to_dom"
+import {DomValueLink} from "src/box_dom_binding/dom_value_link"
 
 const noValue = Symbol("cardboard-dom-binder-no-value")
 type NoValue = typeof noValue
@@ -16,10 +18,12 @@ export let mismatchedNodesErrorCount = 0
 /** Binder is a way to access various lifecycle events of DOM nodes
  * Through that it can help with subscription to various stuff like boxes */
 export class Binder {
-	private beforeInsertedHandlers = null as null | (() => void)[]
-	private afterInsertedHandlers = null as null | (() => void)[]
-	private removedHandlers = null as null | (() => void)[]
-	private watchedBoxes = null as null | WatchedBox[]
+	private beforeInsertedHandlers: null | (() => void)[] = null
+	private afterInsertedHandlers: null | (() => void)[] = null
+	private removedHandlers: null | (() => void)[] = null
+	private watchedBoxes: null | WatchedBox[] = null
+	// those are here only for unsubscribing
+	private domValueLinks: null | DomValueLink<unknown>[] = null
 	isInDom: boolean
 	private isExpectingInsertion = false
 
@@ -143,15 +147,36 @@ export class Binder {
 		this.invokeBoxHandler(box.get(), boxWrap, undefined)
 	}
 
-	unwatch<T>(box: RBox<T>, handler: (value: T) => void): void {
+	unwatch<T>(handler: (value: T) => void): void {
 		const filteredBoxes = this.watchedBoxes?.filter(boxWrap => {
-			if(boxWrap.box === box && boxWrap.handler === handler){
+			if(boxWrap.handler === handler){
 				boxWrap.box.unsubscribe(boxWrap.handlerWrap)
 				return false
 			}
 			return true
 		})
 		this.watchedBoxes = !filteredBoxes || filteredBoxes.length < 0 ? null : filteredBoxes
+	}
+
+	addDomValueLink<T>(link: DomValueLink<T>): void {
+		(this.domValueLinks ||= []).push(link as DomValueLink<unknown>)
+		link.bind(this)
+	}
+
+	removeDomValueLink(options: DomBoxOptionsBase): void {
+		if(!this.domValueLinks){
+			return
+		}
+
+		const links = this.domValueLinks.filter(link => {
+			if(link.options === options){
+				link.unbind(this)
+				return false
+			}
+			return true
+		})
+
+		this.domValueLinks = links.length === 0 ? null : links
 	}
 
 }

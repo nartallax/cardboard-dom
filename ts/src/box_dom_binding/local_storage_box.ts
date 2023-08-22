@@ -1,33 +1,23 @@
-import {RBox, WBox, box, isWBox} from "@nartallax/cardboard"
-import {DomBoxOptionsBase} from "src/box_dom_binding/bind_box_to_dom"
+import {WBox, box} from "@nartallax/cardboard"
+import {DomBoxOptionsBase, bindBoxToDomValue} from "src/box_dom_binding/bind_box_to_dom"
+import {DomValueLink} from "src/box_dom_binding/dom_value_link"
 
-const jsonParser = (x: string) => JSON.parse(x)
-const jsonSerializer = (x: any) => JSON.stringify(x)
-
-type LocalStorageBaseOptions = DomBoxOptionsBase & {
+export interface LocalStorageBoxOptions<T> extends DomBoxOptionsBase {
 	readonly type: "localStorage"
 	readonly key: string
-}
-type LocalStorageParserOptions<T> = LocalStorageBaseOptions & {
-	readonly parse: (x: string) => T
-	readonly serialize: (x: T) => string
-}
-export type LocalStorageBoxOptions<T> = LocalStorageBaseOptions | LocalStorageParserOptions<T>
-
-function hasParserOptions<T>(opts: LocalStorageBoxOptions<T>): opts is LocalStorageParserOptions<T> {
-	return !!(opts as LocalStorageParserOptions<T>).parse
+	readonly parse: (x: string | null) => T
+	readonly serialize: (x: T) => string | null
 }
 
-export function bindBoxToLocalStorage<T>(box: RBox<T>, options: LocalStorageBoxOptions<T>): void {
-	let parse = jsonParser, serialize = jsonSerializer
-	if(hasParserOptions(options)){
-		parse = options.parse
-		serialize = options.serialize
+export class LocalStorageDomLink<T> extends DomValueLink<T, string | null, LocalStorageBoxOptions<T>> {
+
+	protected getRawDomValue(): string | null {
+		return localStorage.getItem(this.options.key)
 	}
-	const key = options.key
 
-	const setLocalStorageValue = (newValue: T) => {
-		const serialized = serialize(newValue)
+	protected updateDomValue(value: T): void {
+		const key = this.options.key
+		const serialized = this.options.serialize(value)
 		if(serialized === null){
 			localStorage.removeItem(key)
 		} else {
@@ -35,20 +25,23 @@ export function bindBoxToLocalStorage<T>(box: RBox<T>, options: LocalStorageBoxO
 		}
 	}
 
-	{
-		const existingValue = localStorage.getItem(key)
-		if(!options.preferOriginalValue && existingValue !== null && isWBox(box)){
-			box.set(parse(existingValue))
-		} else {
-			setLocalStorageValue(box.get())
-		}
+	protected parseDomValue(raw: string | null): T {
+		return this.options.parse(raw)
 	}
 
-	box.subscribe(setLocalStorageValue)
 }
 
-export function localStorageBox<T>(initialValue: T, key: string, options?: Omit<LocalStorageBoxOptions<T>, "type" | "key">): WBox<T> {
+export function localStorageBox<T>(node: Node, key: string, initialValue: T): WBox<T>
+export function localStorageBox<T>(node: Node, key: string, initialValue: T, options: Omit<LocalStorageBoxOptions<T>, "type" | "key">): WBox<T>
+export function localStorageBox<T>(node: Node, key: string, initialValue: T, options?: Omit<LocalStorageBoxOptions<T>, "type" | "key">): WBox<T> {
 	const result = box(initialValue)
-	bindBoxToLocalStorage(result, {...(options || {}), key, type: "localStorage"})
+	bindBoxToDomValue(node, result, {
+		parse: value => JSON.parse(value + ""),
+		serialize: value => JSON.stringify(value),
+		preferOriginalValue: localStorage.getItem(key) === null,
+		...(options || {}),
+		key,
+		type: "localStorage"
+	})
 	return result
 }

@@ -1,7 +1,9 @@
-import {RBox} from "@nartallax/cardboard"
-import {CssVariableBoxOptions, bindBoxToCssVariable} from "src/box_dom_binding/css_variable_box"
-import {LocalStorageBoxOptions, bindBoxToLocalStorage} from "src/box_dom_binding/local_storage_box"
-import {UrlOptions, bindBoxToUrl} from "src/box_dom_binding/url_box"
+import {MRBox, RBox, constBoxWrap} from "@nartallax/cardboard"
+import {CssVariableBoxLink, CssVariableBoxOptions} from "src/box_dom_binding/css_variable_box"
+import {DomValueLink} from "src/box_dom_binding/dom_value_link"
+import {LocalStorageBoxOptions, LocalStorageDomLink} from "src/box_dom_binding/local_storage_box"
+import {UrlBoxDomLink, UrlOptions} from "src/box_dom_binding/url_box"
+import {getBinder} from "src/node_binding"
 
 export type DomBoxOptionsBase = {
 	/** If true and the box is wbox, don't override original value right after invocation
@@ -12,20 +14,20 @@ export type DomBoxOptionsBase = {
 	readonly preferOriginalValue?: boolean
 }
 
-type Options<T> = (LocalStorageBoxOptions<T> | CssVariableBoxOptions | (string extends T ? UrlOptions : never))
+export type DomBoxBindingOptions<T> = (LocalStorageBoxOptions<T> | CssVariableBoxOptions | (string extends T ? UrlOptions : never))
 
-// TODO: this box won't unsubscribe ever, which is bad.
-// we need special kind of box, that subscribes/unsubscribes to externals only when have subscription
-/** This function is a way to link arbitrary box to some of well-known DOM values,
- * like URL parts or local storage values
- *
- * In case there's API for receiving updates for the value and the box is wbox,
- * the box will receive updates from DOM.
- * Otherwise only the DOM value will be updated by box's value. */
-export function bindBoxToDomValue<T>(box: RBox<T>, options: Options<T>): void {
+export function bindBoxToDomValue<T>(node: Node, box: MRBox<T>, options: DomBoxBindingOptions<T>): void {
+	const wrappedBox = constBoxWrap(box)
+	const binder = getBinder(node)
+	let link: DomValueLink<T>
 	switch(options.type){
-		case "localStorage": bindBoxToLocalStorage(box, options); return
-		case "cssVariable": bindBoxToCssVariable(box, options); return
-		case "url": bindBoxToUrl(box as RBox<string>, options); return
+		case "localStorage": link = new LocalStorageDomLink(wrappedBox, options); break
+		case "cssVariable": link = new CssVariableBoxLink(wrappedBox, options); break
+		case "url": link = new UrlBoxDomLink(wrappedBox as RBox<string>, options) as unknown as DomValueLink<T>; break
 	}
+	binder.addDomValueLink(link)
+}
+
+export function unbindBoxToDom<T>(node: Node, options: DomBoxBindingOptions<T>): void {
+	getBinder(node).removeDomValueLink(options)
 }
