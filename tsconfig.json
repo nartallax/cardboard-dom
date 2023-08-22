@@ -29,7 +29,7 @@
         "newLine": "lf",
         "noEmitOnError": true,
         "pretty": false,
-        "removeComments": true,
+        "removeComments": false,
         "sourceMap": false,
         "declaration": false,
         "emitBOM": false,

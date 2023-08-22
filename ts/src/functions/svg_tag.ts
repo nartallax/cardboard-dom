@@ -5,6 +5,7 @@ export type SVGTagDescription<K extends keyof SVGElementTagNameMap = keyof SVGEl
 
 export type SVGChildArray = ChildArray<SVGElement>
 
+/** Create an SVGElement according to the description. */
 export function svgTag(): SVGGElement
 export function svgTag<K extends keyof SVGElementTagNameMap = "g">(description: SVGTagDescription<K>): SVGElementTagNameMap[K]
 export function svgTag(children: SVGChildArray): SVGGElement
@@ -24,6 +25,7 @@ export function svgTag<K extends keyof SVGElementTagNameMap = "g">(a?: SVGTagDes
 	return tagBase as SVGElementTagNameMap[K]
 }
 
+/** Create an SVGElement that contains children that are result of rendering of individual items of an array */
 export function containerSvgTag<T, K, N extends keyof SVGElementTagNameMap = "g">(childItems: RBox<readonly T[]>, getKey: (item: T, index: number) => K, renderChild: (item: RBox<T>) => SVGElement): SVGElementTagNameMap[N]
 export function containerSvgTag<T, K, N extends keyof SVGElementTagNameMap = "g">(childItems: WBox<readonly T[]>, getKey: (item: T, index: number) => K, renderChild: (item: WBox<T>) => SVGElement): SVGElementTagNameMap[N]
 export function containerSvgTag<T, K, N extends keyof SVGElementTagNameMap = "g">(description: SVGTagDescription<N>, childItems: RBox<readonly T[]>, getKey: (item: T, index: number) => K, renderChild: (item: RBox<T>) => SVGElement): SVGElementTagNameMap[N]

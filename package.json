@@ -1,6 +1,6 @@
 {
   "name": "@nartallax/cardboard-dom",
-  "version": "1.0.29",
+  "version": "2.0.0",
   "description": "DOM utils for Cardboard",
   "main": "cardboard-dom.js",
   "types": "cardboard-dom.d.ts",
@@ -17,7 +17,7 @@
     "build:copy_static": "cp ./LICENSE ./target/ && cp ./README.md ./target && npm run build:cut_package",
     "build:cut_package": "./node_modules/.bin/package-cutter --output ./target/package.json",
     "pub": "npm run build && npm run pub:publish",
-    "pub:publish": "cd target && npm publish --access public && cd .."
+    "pub:publish": "cd target && npm publish --access public --dry-run && cd .."
   },
   "repository": {
     "type": "git",
@@ -59,7 +59,7 @@
       "includeNodeModules": false
     }
   },
-  "dependencies": {
+  "peerDependencies": {
     "@nartallax/cardboard": "^2.1.1"
   }
 }

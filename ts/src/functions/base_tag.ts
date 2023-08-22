@@ -168,13 +168,15 @@ type OnMountOptions = {
 	 * DOM manipulations should be avoided if this option is enabled,
 	 * because it may lead to unexpected behaviour */
 	readonly beforeInserted?: boolean
-	/** What to do if the node is already in DOM?
-	 * "throw" (default) - throw an error. Because most of the time doing nothing or calling is unexpected and wrong.
-	 * "nothing" - do nothing. It's fine to not invoke the handler.
+	/** What to do if the node is already in DOM at the time of `onMount()` call?
+	 * "throw" (default) - throw an error. Because most of the time both calling or not calling the handler is unexpected.
+	 * "nothing" - don't call the handler
 	 * "call" - call the handler */
 	readonly ifInDom?: "throw" | "nothing" | "call"
 }
 
+/** This function will attach handler to an element, to be called when element is inserted into the DOM.
+ * Handler can then return another function, which will be executed when element is removed from the DOM. */
 export function onMount(el: Element, handler: (() => void) | (() => () => void), options?: OnMountOptions): void {
 	const binder = getBinder(el)
 

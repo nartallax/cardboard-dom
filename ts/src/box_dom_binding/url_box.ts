@@ -83,6 +83,10 @@ export class UrlBoxDomLink extends DomValueLink<string, string, UrlOptions> {
 
 }
 
+/** Create a writable box linked to some part of page URL.
+ * History API is used to manipulate the URL.
+ *
+ * If some part of the URL is present in the page, but not enabled in the box options - it will stay as-is when URL is updated. */
 export function urlBox(node: Node, options: Omit<UrlOptions, "type" | "preferOriginalValue">): WBox<string> {
 	const result = box("")
 	bindBoxToDomValue(node, result, {...options, type: "url"})

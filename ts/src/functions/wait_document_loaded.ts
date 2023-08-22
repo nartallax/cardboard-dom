@@ -1,3 +1,4 @@
+/** Make a promise that is resolved when the document is in "interactive" state or further */
 export function waitDocumentLoaded(): Promise<void> {
 	return new Promise(ok => {
 		const check = () => {

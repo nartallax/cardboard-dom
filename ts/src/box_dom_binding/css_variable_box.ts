@@ -42,6 +42,10 @@ export class CssVariableBoxLink<T> extends DomValueLink<T, string, CssVariableBo
 
 }
 
+/** Creates a writable box that is linked to CSS variable on a particular element.
+ * Keep in mind that name should start with --
+ * If value of the variable is non-empty string, or number - the variable will take this value;
+ * otherwise, variable will be deleted. */
 export function cssVariableBox<T>(node: Node, name: string, value: T, options?: Omit<CssVariableBoxOptions, "type" | "name">): WBox<T> {
 	const result = box(value)
 	bindBoxToDomValue(node, result, {...(options || {}), name, type: "cssVariable"})

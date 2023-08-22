@@ -50,6 +50,11 @@ const defineControlBase = <C, R, F extends (props: any, children: C) => R>(rende
 }
 
 type HTMLControlDef<F> = ControlDef<HTMLChildArray, HTMLElement, F>
+/** Define a control.
+ * A control is a function that takes properties (if any) and children (optional, if expected) and returns HTMLElement.
+ *
+ * This function only exists to wrap rendering function; wrapper allows to resolve arguments and pass them more flexibly.
+ * For example, you can avoid passing props if all the props are optional, or not pass children. */
 export const defineControl = <F extends (props: any, children: HTMLChildArray) => HTMLElement>(renderer: F): HTMLControlDef<F> =>
 	defineControlBase<HTMLChildArray, HTMLElement, F>(renderer)
 

@@ -25,11 +25,11 @@ export interface HTMLTagDescription<K extends keyof HTMLElementTagNameMap = keyo
 type HTMLChild = HTMLElement | SVGElement | MRBox<Maybe<string | number | boolean>>
 export type HTMLChildArray = ChildArray<HTMLChild>
 
+/** Create an HTMLElement according to the description. */
 export function tag(): HTMLDivElement
 export function tag<K extends keyof HTMLElementTagNameMap = "div">(description: HTMLTagDescription<K>): HTMLElementTagNameMap[K]
 export function tag(children: HTMLChildArray): HTMLDivElement
 export function tag<K extends keyof HTMLElementTagNameMap = "div">(description: HTMLTagDescription<K>, children: HTMLChildArray): HTMLElementTagNameMap[K]
-
 export function tag<K extends keyof HTMLElementTagNameMap = "div">(a?: HTMLTagDescription<K> | HTMLChildArray, b?: HTMLChildArray): HTMLElementTagNameMap[K] {
 	const [description, children] = resolveTagCreationArgs(a, b)
 
@@ -63,6 +63,7 @@ function getHtmlChildContent(content: string | number | boolean | null | undefin
 
 }
 
+/** Create an HTMLElement that contains children that are result of rendering of individual items of an array */
 export function containerTag<T, K, N extends keyof HTMLElementTagNameMap = "div">(childItems: WBox<readonly T[]>, getKey: (item: T, index: number) => K, renderChild: (item: WBox<T>) => HTMLElement): HTMLElementTagNameMap[N]
 export function containerTag<T, K, N extends keyof HTMLElementTagNameMap = "div">(childItems: RBox<readonly T[]>, getKey: (item: T, index: number) => K, renderChild: (item: RBox<T>) => HTMLElement): HTMLElementTagNameMap[N]
 export function containerTag<T, K, N extends keyof HTMLElementTagNameMap = "div">(description: HTMLTagDescription<N>, childItems: WBox<readonly T[]>, getKey: (item: T, index: number) => K, renderChild: (item: WBox<T>) => HTMLElement): HTMLElementTagNameMap[N]

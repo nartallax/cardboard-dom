@@ -31,7 +31,19 @@ export class LocalStorageDomLink<T> extends DomValueLink<T, string | null, Local
 
 }
 
+/** Create a writable box that is linked to a value in localStorage.
+ * initialValue is only used when a key is not present in the localStorage.
+ *
+ * Value is JSON-serialized for storage. */
 export function localStorageBox<T>(node: Node, key: string, initialValue: T): WBox<T>
+/** Create a writable box that is linked to a value in localStorage.
+ * initialValue is only used when a key is not present in the localStorage.
+ *
+ * If you chose to pass options - you must pass custom serializer.
+ * It is done for the case when preferBoxValue is false, and the value in the local storage is absent;
+ * so you must do something about `null` as parser input.
+ *
+ * This also gives you an opportunity to delete value from local storage by returning `null` from serializer. */
 export function localStorageBox<T>(node: Node, key: string, initialValue: T, options: Omit<LocalStorageBoxOptions<T>, "type" | "key">): WBox<T>
 export function localStorageBox<T>(node: Node, key: string, initialValue: T, options?: Omit<LocalStorageBoxOptions<T>, "type" | "key">): WBox<T> {
 	const result = box(initialValue)
