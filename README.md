@@ -35,9 +35,9 @@ document.body.append(root)
 
 ## Using boxes: general idea
 
-Now to the main feature of this library - how to subscribe to box without making memory leak.  
-To do that, this library allows to bind box to an DOM node. When the node is inserted into DOM - library will subscribe to the box; when the node is removed - library will unsubscribe. This way a box is never subscribed to unless it can actually do something with DOM.  
-To do that, `bindBox` function exists:
+Now to the main feature of this library - how to subscribe to a box without making memory leak.  
+This library allows you to bind box to an DOM node. When the node is inserted into DOM - library will subscribe to the box; when the node is removed - library will unsubscribe. This way a box is never subscribed to unless it can actually do something with DOM.  
+For this exact purpose `bindBox` function exists:
 
 ```typescript
 import {tag, bindBox} from "@nartallax/cardboard-dom"
@@ -57,7 +57,7 @@ bindBox(nameEl, nameBox, handler)
 unbindBox(nameEl, handler)
 ```
 
-Subscribing to boxes directly (like, with `.subscribe()` method) is still an option, but you almost never really need it. Direct call of `.subscribe()` should be avoided, because that's the way to create an accidental memory leak.
+Subscribing to boxes directly (like, with `.subscribe()` method) is still an option, but you will almost never really need it. Direct call of `.subscribe()` should be avoided, as it is the way to create an accidental memory leak.
 
 ## Using boxes: shortcuts
 
@@ -82,14 +82,14 @@ let nameEl = tag({
 	// ... and other stuff
 }, 
 // you can also pass box as a child; a text node with the content of the box will be created
-// ...but you cannot pass boxes with elements that way
+// ...but you cannot pass box with a DOM node this way
 ["The name is: ", nameBox])
 ```
 
 Passing box in place of value is equivalent to passing just value, and then binding a box to that element and updating value in the callback. So it's pretty intuitive - if you pass a box, `tag` will handle binding for you.  
 
 As it says above, you cannot pass a box containing an `HTMLElement` as child to `tag`.  
-This is a design choice; boxes exist to store data, and `HTMLElement` is a product of processing that boxed data into something that you can show to the user. It is extension of original Cardboard rule "don't put box into box".  
+This is a design choice; boxes exist to store data, and `HTMLElement` is a product of processing that boxed data into something that you can show to the user. It is extension of original [Cardboard rule](https://github.com/nartallax/cardboard#antipatterns) "don't put box into box".  
 
 ## Container tags
 
