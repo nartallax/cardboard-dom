@@ -17,7 +17,7 @@
     "build:copy_static": "cp ./LICENSE ./target/ && cp ./README.md ./target && npm run build:cut_package",
     "build:cut_package": "./node_modules/.bin/package-cutter --output ./target/package.json",
     "pub": "npm run build && npm run pub:publish",
-    "pub:publish": "cd target && npm publish --access public --dry-run && cd .."
+    "pub:publish": "cd target && npm publish --access public && cd .."
   },
   "repository": {
     "type": "git",
