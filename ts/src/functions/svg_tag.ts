@@ -1,5 +1,5 @@
 import {RBox, WBox} from "@nartallax/cardboard"
-import {ChildArray, TagDescription, bindChildArrayToTag, populateTag, resolveContainerTagCreationArgs, resolveTagCreationArgs} from "src/functions/base_tag"
+import {ChildArray, TagDescription, makeContainerTagFn, populateTag, resolveTagCreationArgs} from "src/functions/base_tag"
 
 export type SVGTagDescription<K extends keyof SVGElementTagNameMap = keyof SVGElementTagNameMap> = TagDescription<K, SVGElementTagNameMap[K]>
 
@@ -25,14 +25,22 @@ export function svgTag<K extends keyof SVGElementTagNameMap = "g">(a?: SVGTagDes
 	return tagBase as SVGElementTagNameMap[K]
 }
 
+type ContainerSvgTagFn =
+(<T, K, N extends keyof SVGElementTagNameMap = "g">(
+	childItems: RBox<readonly T[]>, getKey: (item: T, index: number) => K, renderChild: (item: RBox<T>) => SVGElement
+) => SVGElementTagNameMap[N]) &
+
+(<T, K, N extends keyof SVGElementTagNameMap = "g">(
+	childItems: WBox<readonly T[]>, getKey: (item: T, index: number) => K, renderChild: (item: WBox<T>) => SVGElement
+) => SVGElementTagNameMap[N]) &
+
+(<T, K, N extends keyof SVGElementTagNameMap = "g">(
+	description: SVGTagDescription<N>, childItems: RBox<readonly T[]>, getKey: (item: T, index: number) => K, renderChild: (item: RBox<T>) => SVGElement
+) => SVGElementTagNameMap[N]) &
+
+(<T, K, N extends keyof SVGElementTagNameMap = "g">(
+	description: SVGTagDescription<N>, childItems: WBox<readonly T[]>, getKey: (item: T, index: number) => K, renderChild: (item: WBox<T>) => SVGElement
+) => SVGElementTagNameMap[N])
+
 /** Create an SVGElement that contains children that are result of rendering of individual items of an array */
-export function containerSvgTag<T, K, N extends keyof SVGElementTagNameMap = "g">(childItems: RBox<readonly T[]>, getKey: (item: T, index: number) => K, renderChild: (item: RBox<T>) => SVGElement): SVGElementTagNameMap[N]
-export function containerSvgTag<T, K, N extends keyof SVGElementTagNameMap = "g">(childItems: WBox<readonly T[]>, getKey: (item: T, index: number) => K, renderChild: (item: WBox<T>) => SVGElement): SVGElementTagNameMap[N]
-export function containerSvgTag<T, K, N extends keyof SVGElementTagNameMap = "g">(description: SVGTagDescription<N>, childItems: RBox<readonly T[]>, getKey: (item: T, index: number) => K, renderChild: (item: RBox<T>) => SVGElement): SVGElementTagNameMap[N]
-export function containerSvgTag<T, K, N extends keyof SVGElementTagNameMap = "g">(description: SVGTagDescription<N>, childItems: WBox<readonly T[]>, getKey: (item: T, index: number) => K, renderChild: (item: WBox<T>) => SVGElement): SVGElementTagNameMap[N]
-export function containerSvgTag(a: any, b: any, c: any, d?: any): SVGElement {
-	const [description, childItems, getKey, renderChild] = resolveContainerTagCreationArgs<SVGTagDescription>(a, b, c, d)
-	const result = svgTag(description)
-	bindChildArrayToTag(result, childItems, getKey, renderChild)
-	return result
-}
+export const containerSvgTag: ContainerSvgTagFn = makeContainerTagFn(svgTag) as any

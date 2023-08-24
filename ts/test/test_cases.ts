@@ -898,3 +898,14 @@ defineTestCase("can replaceWith string", () => {
 	node.replaceWith("owo")
 	container.remove()
 })
+
+defineTestCase("each overload of containerTag works", () => {
+	assertEquals(containerTag(box([1, 2, 3]), x => x, x => tag([x])).textContent, "123")
+	assertEquals(containerTag(calcBox([], () => [2, 3, 4]), x => x, x => tag([x])).textContent, "234")
+	assertEquals(containerTag({class: "owo"}, box([3, 4, 5]), x => x, x => tag([x])).textContent, "345")
+	assertEquals(containerTag({class: "owo"}, calcBox([], () => [4, 5, 6]), x => x, x => tag([x])).textContent, "456")
+	assertEquals(containerTag(box([5, 6, 7]), x => x.join(",")).textContent, "5,6,7")
+	assertEquals(containerTag([box(6), 7, box("x")], (a, b, c) => `${a},${b},${c.length}`).textContent, "6,7,1")
+	assertEquals(containerTag({class: "owo"}, box([8, 9, 0]), x => x.join(",")).textContent, "8,9,0")
+	assertEquals(containerTag({class: "owo"}, [box(9), 0, box("x")], (a, b, c) => `${a},${b},${c.length}`).textContent, "9,0,1")
+})

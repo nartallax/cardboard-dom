@@ -1,6 +1,6 @@
-import {BoxChangeHandler, MRBox, RBox, constBoxWrap, isConstBox, isRBox, unbox} from "@nartallax/cardboard"
+import {BoxChangeHandler, MRBox, RBox, Unboxed, constBoxWrap, isConstBox, isRBox, unbox} from "@nartallax/cardboard"
 import {ClassNameParts, makeClassname} from "src/functions/classname"
-import {getBinder} from "src/node_binding"
+import {bindBox, getBinder} from "src/node_binding"
 import {Binder} from "src/parts/binder"
 
 type NoLeadingOn<T extends `on${string}`> = T extends `on${infer X}` ? Uncapitalize<X> : never
@@ -8,6 +8,14 @@ type WithLeadingOn<T extends string> = `on${Capitalize<T>}`
 type EventHandlers<ThisType = unknown> = {
 	readonly [k in WithLeadingOn<keyof GlobalEventHandlersEventMap>]?: (this: ThisType, evt: GlobalEventHandlersEventMap[NoLeadingOn<k>]) => void
 }
+
+export type UnboxedTuple<D> = D extends readonly [infer X, ...infer Rest]
+	? readonly [Unboxed<X>, ...UnboxedTuple<Rest>]
+	: D extends []
+		? []
+		: D extends readonly MRBox<unknown>[]
+			? readonly Unboxed<D[number]>[]
+			: never
 
 export function removeOnPrefix<T extends WithLeadingOn<keyof GlobalEventHandlersEventMap>>(x: T): NoLeadingOn<T> {
 	return x.charAt(2).toLowerCase() + x.substring(3) as NoLeadingOn<T>
@@ -31,6 +39,7 @@ export interface TagDescription<K extends string = string, ThisType = unknown> e
 }
 
 export type Maybe<E> = E | null | undefined
+export type MaybeArray<E> = E | readonly E[]
 export type ChildArray<E = unknown> = readonly Maybe<E>[]
 
 export function resolveTagCreationArgs<K, E>(a?: K | ChildArray<E>, b?: ChildArray<E>): [K, ChildArray<E> | undefined] {
@@ -43,12 +52,40 @@ export function resolveTagCreationArgs<K, E>(a?: K | ChildArray<E>, b?: ChildArr
 	}
 }
 
-export function resolveContainerTagCreationArgs<D>(a: any, b: any, c: any, d: any): [D, RBox<readonly unknown[]>, (item: unknown, index: number) => unknown, (item: unknown) => HTMLElement] {
-	const description: D = d ? a : undefined
-	const childItems: RBox<readonly unknown[]> = d ? b : a
-	const getKey: (item: unknown, index: number) => unknown = d ? c : b
-	const renderChild: (item: unknown) => HTMLElement = d ? d : c
-	return [description, childItems, getKey, renderChild]
+export function makeContainerTagFn<C, D, R extends Node>(renderByDescription: (desc?: D) => R, renderChild?: (el: Exclude<C, Node | null | undefined>) => Node | null): (a: any, b: any, c?: any, d?: any) => R {
+	return (a, b, c, d) => {
+		const argumentCount = d !== undefined ? 4 : c !== undefined ? 3 : 2
+		const isArrayContainer = argumentCount === 4 || (argumentCount === 3 && isRBox(a))
+		let result: R
+		if(isArrayContainer){
+			const description: D = d ? a : undefined
+			const childItems: RBox<readonly unknown[]> = d ? b : a
+			const getKey: (item: unknown, index: number) => unknown = d ? c : b
+			const renderChild: (item: unknown) => R = d ? d : c
+			result = renderByDescription(description)
+			bindChildArrayToTag(result, childItems, getKey, renderChild)
+		} else {
+			const description: D = c ? a : undefined
+			const boxesOrBox: MaybeArray<MRBox<unknown>> = c ? b : a
+			const render: (...args: unknown[]) => MaybeArray<unknown> = c ? c : b
+			const boxes = Array.isArray(boxesOrBox) ? boxesOrBox : [boxesOrBox]
+
+			result = renderByDescription(description)
+
+			const reRenderChildren = () => {
+				const args = boxes.map(box => unbox(box))
+				const newChildOrSeveral = render(...args)
+				const newChildren = Array.isArray(newChildOrSeveral) ? newChildOrSeveral : [newChildOrSeveral]
+				updateChildren(result, renderChildren(newChildren, renderChild))
+			}
+
+			for(let i = 0; i < boxes.length; i++){
+				bindBox(result, boxes[i], reRenderChildren, {dontCallImmediately: true})
+			}
+			reRenderChildren()
+		}
+		return result
+	}
 }
 
 export function populateTag<K extends string, T, E>(tagBase: Element, description: TagDescription<K, T>, children: ChildArray<E> | undefined, renderChild?: (el: Exclude<E, Node | null | undefined>) => Node | null): Binder | null {
@@ -99,7 +136,7 @@ export function populateTag<K extends string, T, E>(tagBase: Element, descriptio
 	return binder
 }
 
-function renderChildren<E>(children: readonly Maybe<E>[], renderChild?: (el: Exclude<E, Node | null | undefined>) => Node | null): Node[] {
+export function renderChildren<E>(children: readonly Maybe<E>[], renderChild?: (el: Exclude<E, Node | null | undefined>) => Node | null): Node[] {
 	const childTags: Node[] = []
 	for(const child of children){
 		if(child === null || child === undefined || child === true || child === false){

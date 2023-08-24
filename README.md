@@ -91,7 +91,7 @@ Passing box in place of value is equivalent to passing just value, and then bind
 As it says above, you cannot pass a box containing an `HTMLElement` as child to `tag`.  
 This is a design choice; boxes exist to store data, and `HTMLElement` is a product of processing that boxed data into something that you can show to the user. It is extension of original [Cardboard rule](https://github.com/nartallax/cardboard#antipatterns) "don't put box into box".  
 
-## Container tags
+## Container tags: arrays
 
 Working with arrays is hard.  
 Fortunately, this library has a solution for that - container tags:  
@@ -124,6 +124,25 @@ let el = containerTag(
 // it will update its own children when original array box changes its value
 document.body.append(el)
 ```
+
+## Container tags: individual boxes
+
+There's another use of `containerTag` function, and that's a way to transform a box (or several) into DOM nodes:
+
+```typescript
+import {tag, containerTag} from "@nartallax/cardboard-dom"
+import {box} from "@nartallax/cardboard"
+
+let nameBox = box("Dan")
+let ageBox = box(143)
+
+// you can also have description, with class names and such,
+// and only one box instead of array if you want
+let el = containerTag([nameBox, ageBox], (name, age) => tag([`This is ${name}, aged ${age}`]))
+```
+
+Note that this is rare case. Usually you want to do that without container tags, because each change of any of the box values will lead to creation of fresh DOM nodes.  
+It's inavoidable sometimes; for example, if you have a router - it's perfectly reasonable to render new page from scratch when page address changes.  
 
 ## Controls
 
