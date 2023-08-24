@@ -4,6 +4,7 @@ import {SyncMutationWatcher} from "src/parts/sync_mutation_watcher"
 import {MRBox} from "@nartallax/cardboard"
 import {BoxHandlerBindingOptions, bindBoxWithHandler, unbindBoxWithHandler} from "src/functions/base_tag"
 import {DomBoxBindingOptions, bindBoxToDomValue, unbindBoxToDom} from "src/box_dom_binding/bind_box_to_dom"
+import {MaybeArray, isArray} from "src/functions/utils"
 
 const binders = new WeakMap<Node, Binder>()
 const asyncWatcher = new AsyncMutationWatcher(binders)
@@ -28,19 +29,21 @@ export const getBinder = (node: Node): Binder => {
 /** This function is a way to subscribe to arbitrary box without making memory leak
  * Subscriptions will only be called when the component is in the DOM
  * (with the only exception being first immediate call, which will happen regardless of mount state) */
-export function bindBox<T>(node: Node, box: MRBox<T>, handler: (value: T) => void, opts?: BoxHandlerBindingOptions): void
+export function bindBox<T>(node: Node, box: MaybeArray<MRBox<T>>, handler: (value: T) => void, opts?: BoxHandlerBindingOptions): void
 /** This function is a way to link arbitrary box to some of well-known DOM values,
  * like URL parts or local storage values
  *
  * In case there's API for receiving updates for the value and the box is wbox,
  * the box will receive updates from DOM.
  * Otherwise only the DOM value will be updated by box's value. */
-export function bindBox<T>(node: Node, box: MRBox<T>, options: DomBoxBindingOptions<T>): void
-export function bindBox<T>(node: Node, box: MRBox<T>, a: DomBoxBindingOptions<T> | ((value: T) => void), b?: BoxHandlerBindingOptions): void {
-	if(typeof(a) === "function"){
-		bindBoxWithHandler(node, box, a, b)
-	} else {
-		bindBoxToDomValue(node, box, a)
+export function bindBox<T>(node: Node, box: MaybeArray<MRBox<T>>, options: DomBoxBindingOptions<T>): void
+export function bindBox<T>(node: Node, box: MaybeArray<MRBox<T>>, a: DomBoxBindingOptions<T> | ((value: T) => void), b?: BoxHandlerBindingOptions): void {
+	for(const bx of isArray(box) ? box : [box]){
+		if(typeof(a) === "function"){
+			bindBoxWithHandler(node, bx, a, b)
+		} else {
+			bindBoxToDomValue(node, bx, a)
+		}
 	}
 }
 

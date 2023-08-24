@@ -1,5 +1,6 @@
 import {BoxChangeHandler, MRBox, Unboxed, constBoxWrap, isConstBox, isRBox, unbox} from "@nartallax/cardboard"
 import {ClassNameParts, makeClassname} from "src/functions/classname"
+import {Maybe, MaybeArray, isArray} from "src/functions/utils"
 import {getBinder} from "src/node_binding"
 import {Binder} from "src/parts/binder"
 
@@ -38,8 +39,6 @@ export interface TagDescription<K extends string = string, ThisType = unknown> e
 	readonly attrs?: Attributes
 }
 
-export type Maybe<E> = E | null | undefined
-export type MaybeArray<E> = E | readonly E[]
 type NonBoxedSingleChildArrayElement<E> = Maybe<E | string | number | boolean>
 export type ChildArray<E> = readonly MRBox<MaybeArray<NonBoxedSingleChildArrayElement<E>>>[]
 
@@ -106,11 +105,6 @@ export function populateTag<K extends string, T, E extends Element>(tagBase: Ele
 	}
 
 	return binder
-}
-
-// why is this not in default typings...?
-function isArray<T>(a: MaybeArray<T>): a is readonly T[] {
-	return Array.isArray(a)
 }
 
 function updateChildren<E extends Element>(parent: Node, children: ChildArray<E>): void {

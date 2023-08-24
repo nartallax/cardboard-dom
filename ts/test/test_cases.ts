@@ -936,3 +936,23 @@ defineTestCase("children: array of mixed values", async() => {
 
 	el.remove()
 })
+
+defineTestCase("multiple box binding", async() => {
+	const a = box(5)
+	const b = box(10)
+
+	let sum = a.get() + b.get()
+	const el = tag()
+	bindBox(el, [a, b], () => sum = a.get() + b.get())
+
+	await sleep(100)
+	document.body.append(el)
+
+	assertEquals(sum, 15)
+	a.set(6)
+	assertEquals(sum, 16)
+	b.set(7)
+	assertEquals(sum, 13)
+
+	el.remove()
+})
