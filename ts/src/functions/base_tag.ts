@@ -41,7 +41,6 @@ export interface TagDescription<K extends string = string, ThisType = unknown> e
 export type Maybe<E> = E | null | undefined
 export type MaybeArray<E> = E | readonly E[]
 type NonBoxedSingleChildArrayElement<E> = Maybe<E | string | number | boolean>
-// TODO: test cases: array of elements, array of mixed values, single box children, array of boxes of arrays, array of boxes of mixed, array of boxes of single values, array of string that changes to element that changes to string
 export type ChildArray<E> = readonly MRBox<MaybeArray<NonBoxedSingleChildArrayElement<E>>>[]
 
 export function resolveTagCreationArgs<K, E>(a?: K | ChildArray<E>, b?: ChildArray<E>): [K, ChildArray<E> | undefined] {
@@ -144,7 +143,13 @@ function updateChildAt<E extends Element>(parent: Node, child: NonBoxedSingleChi
 	if(child instanceof Node){
 		childNode = child
 	} else {
-		childNode = document.createTextNode(child + "")
+		const childText = child + ""
+		const existingChildNode = parent.childNodes[index]
+		if(existingChildNode instanceof Text){
+			existingChildNode.textContent = childText
+			return index + 1
+		}
+		childNode = document.createTextNode(childText)
 	}
 
 	// why do I have to cast this...? TS is weird here
@@ -242,23 +247,3 @@ export function onMount(el: Element, handler: (() => void) | (() => () => void),
 	}
 	binder.onInserted(onInserted, options?.beforeInserted)
 }
-
-// TODO: remove?
-// function updateChildren(parent: Node, newChildren: readonly Node[]): void {
-// 	for(let i = 0; i < newChildren.length; i++){
-// 		const childTag = newChildren[i]!
-// 		const x = parent.childNodes[i]
-// 		if(x === childTag){
-// 			continue
-// 		}
-// 		if(x){
-// 			parent.insertBefore(childTag, x)
-// 		} else {
-// 			parent.appendChild(childTag)
-// 		}
-// 	}
-
-// 	while(parent.childNodes[newChildren.length]){
-// 		parent.childNodes[newChildren.length]!.remove()
-// 	}
-// }

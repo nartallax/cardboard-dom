@@ -10,23 +10,17 @@ export function makeClassname(binder: Binder | null, node: Node, parts: ClassNam
 	const arr = Array.isArray(parts) ? parts : [parts]
 	for(const item of arr){
 		if(isRBox(item)){
-			(binder ||= getBinder(node)).watchAndRun(item, makeClassnameAndCallTheCallback)
+			(binder ||= getBinder(node)).watch(item, makeClassnameAndCallTheCallback, true)
 		} else if(item && typeof(item) === "object"){
 			for(const key in item){
 				const bool = item[key]
 				if(isRBox(bool)){
-					// TODO: don't run, just make binder grab the value
-					// and run later
-
-					// ugh.
-					// no matter if I use .watch or .watchAndRun here,
-					// there will be several calls, either right now or on first insert
-					// nbd
-					(binder ||= getBinder(node)).watchAndRun(bool, makeClassnameAndCallTheCallback)
+					(binder ||= getBinder(node)).watch(bool, makeClassnameAndCallTheCallback, true)
 				}
 			}
 		}
 	}
+	makeClassnameAndCallTheCallback()
 
 	function makeClassnameAndCallTheCallback() {
 		const result = []

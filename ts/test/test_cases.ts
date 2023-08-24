@@ -899,3 +899,40 @@ defineTestCase("can replaceWith string", () => {
 	node.replaceWith("owo")
 	container.remove()
 })
+
+defineTestCase("children: array of mixed values", async() => {
+	const a = box<string | null>("uwu")
+	const b = box(["o", "w", "u"])
+
+	const el = tag([
+		null,
+		a,
+		a.map(x => x === null ? null : x === "nya" ? x : tag([x + x])),
+		b.mapArray((_, i) => i, x => tag([x])),
+		b.mapArray((_, i) => i, x => tag([x.map(x => x.length)])),
+		"ayaya"
+	])
+
+	await sleep(100)
+	document.body.append(el)
+
+	assertEquals(el.textContent, "uwuuwuuwuowu111ayaya")
+
+	b.set(["u", "w"])
+
+	assertEquals(el.textContent, "uwuuwuuwuuw11ayaya")
+
+	a.set("ow")
+	assertEquals(el.textContent, "owowowuw11ayaya")
+
+	a.set(null)
+	assertEquals(el.textContent, "uw11ayaya")
+
+	a.set("nya")
+	assertEquals(el.textContent, "nyanyauw11ayaya")
+
+	a.set("owo")
+	assertEquals(el.textContent, "owoowoowouw11ayaya")
+
+	el.remove()
+})
