@@ -123,11 +123,11 @@ export class Binder {
 		box.lastKnownValue = value
 	}
 
-	private subscribe<T>(box: RBox<T>, handler: BoxChangeHandler<T>): WatchedBox<T> {
+	private subscribe<T>(box: RBox<T>, handler: BoxChangeHandler<T>, assumeRunning?: boolean): WatchedBox<T> {
 		const boxWrap: WatchedBox<T> = {
 			box,
 			handler,
-			lastKnownValue: noValue,
+			lastKnownValue: assumeRunning ? box.get() : noValue,
 			// wonder if creating a handler wrapper is more performant than storing lastKnownValue and handler in map
 			handlerWrap: (v, _, meta) => this.invokeBoxHandler(v, boxWrap, meta)
 		}
@@ -138,8 +138,8 @@ export class Binder {
 		return boxWrap
 	}
 
-	watch<T>(box: RBox<T>, handler: BoxChangeHandler<T>): void {
-		this.subscribe(box, handler)
+	watch<T>(box: RBox<T>, handler: BoxChangeHandler<T>, assumeRunning?: boolean): void {
+		this.subscribe(box, handler, assumeRunning)
 	}
 
 	watchAndRun<T>(box: RBox<T>, handler: BoxChangeHandler<T>): void {

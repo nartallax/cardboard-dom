@@ -15,6 +15,9 @@ export function makeClassname(binder: Binder | null, node: Node, parts: ClassNam
 			for(const key in item){
 				const bool = item[key]
 				if(isRBox(bool)){
+					// TODO: don't run, just make binder grab the value
+					// and run later
+
 					// ugh.
 					// no matter if I use .watch or .watchAndRun here,
 					// there will be several calls, either right now or on first insert

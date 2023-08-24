@@ -1,5 +1,5 @@
 import {WBox, box} from "@nartallax/cardboard"
-import {containerTag, tag} from "src/functions/html_tag"
+import {tag} from "src/functions/html_tag"
 import {waitDocumentLoaded} from "src/functions/wait_document_loaded"
 import css from "./test.module.scss"
 import {testCases} from "test/test_cases"
@@ -29,14 +29,15 @@ function renderAll() {
 
 	sortCases()
 
-	const root = containerTag({class: css.testTable},
-		casesBox,
-		testCase => testCase.name,
-		testCaseBox => tag({class: css.testRow}, [
-			tag({class: css.testEntryName}, [testCaseBox.prop("name")]),
-			renderTester(testCaseBox.get().tester, testCaseBox.prop("finished"), sortCases)
-		])
-	)
+	const root = tag({class: css.testTable}, [
+		casesBox.mapArray(
+			testCase => testCase.name,
+			testCaseBox => tag({class: css.testRow}, [
+				tag({class: css.testEntryName}, [testCaseBox.prop("name")]),
+				renderTester(testCaseBox.get().tester, testCaseBox.prop("finished"), sortCases)
+			])
+		)
+	])
 	document.body.appendChild(root)
 }
 

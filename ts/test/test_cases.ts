@@ -2,7 +2,7 @@ import {RBox, WBox, box, calcBox} from "@nartallax/cardboard"
 import {defineControl} from "src/functions/control"
 import {bindBoxWithHandler, onMount} from "src/functions/base_tag"
 import {DomBoxBindingOptions, bindBoxToDomValue} from "src/box_dom_binding/bind_box_to_dom"
-import {containerTag, tag} from "src/functions/html_tag"
+import {tag} from "src/functions/html_tag"
 import {svgTag} from "src/functions/svg_tag"
 import {mismatchedNodesErrorCount} from "src/parts/binder"
 import {assertEquals, assertErrorTextMatches, assertFalsy, assertTruthy, sleep} from "test/test_utils"
@@ -184,10 +184,10 @@ defineTestCase("null child among non-nulls", async() => {
 defineTestCase("tag don't invoke child map more times than needed", async() => {
 	const data = box([1, 2, 3])
 	let invokeCount = 0
-	const container = containerTag(data, x => x, num => {
+	const container = tag([data.mapArray(x => x, num => {
 		invokeCount++
 		return tag([num + ""])
-	})
+	})])
 
 	await sleep(250)
 	document.body.appendChild(container)
@@ -267,7 +267,7 @@ defineTestCase("lora list rerendering when paramset is toggled", async() => {
 	const paramSet = box<"a" | "b">("a")
 
 	const LoraLabel = (b: RBox<string>) => tag({class: "lora"}, [b])
-	const LoraList = (b: RBox<string[]>) => containerTag({class: "loralist"}, b, x => x, x => LoraLabel(x))
+	const LoraList = (b: RBox<string[]>) => tag({class: "loralist"}, [b.mapArray(x => x, x => LoraLabel(x))])
 	const ParamList = (name: RBox<string>) => {
 		const loraList = calcBox([name], name => name === "a" ? [] : loras.get())
 		return LoraList(loraList)
@@ -354,18 +354,19 @@ defineTestCase("can define control without children and props", () => {
 	assertEquals(a.className, "knob")
 })
 
-defineTestCase("containerTag updates by data", async() => {
+defineTestCase("tag updates by data", async() => {
 	const a = {id: "a", name: "a"}
 	const b = {id: "b", name: "b"}
 	const c = {id: "c", name: "c"}
 	const data = box([a, b, c])
 
 	let count = 0
-	const container = containerTag(
-		data,
-		item => item.id,
-		item => tag({attrs: {"data-index": count++}}, [item.prop("name")])
-	)
+	const container = tag([
+		data.mapArray(
+			item => item.id,
+			item => tag({attrs: {"data-index": count++}}, [item.prop("name")])
+		)
+	])
 	await sleep(10)
 	document.body.appendChild(container)
 
@@ -394,7 +395,7 @@ defineTestCase("containerTag updates by data", async() => {
 	container.remove()
 })
 
-defineTestCase("containerTag passes wbox to a child", () => {
+defineTestCase("tag passes wbox to a child", () => {
 	const a = {id: "a", name: "a"}
 	const b = {id: "b", name: "b"}
 	const c = {id: "c", name: "c"}
@@ -402,15 +403,15 @@ defineTestCase("containerTag passes wbox to a child", () => {
 
 	const boxes: WBox<string>[] = []
 
-	const container = containerTag(
-		data,
-		item => item.id,
-		item => {
-			const propBox = item.prop("name")
-			boxes.push(propBox)
-			return tag([propBox])
-		}
-	)
+	const container = tag([
+		data.mapArray(
+			item => item.id,
+			item => {
+				const propBox = item.prop("name")
+				boxes.push(propBox)
+				return tag([propBox])
+			})
+	])
 	document.body.appendChild(container)
 
 	boxes[1]?.set("uwu")
@@ -638,7 +639,7 @@ defineTestCase("live view slip: replace() on delete", async() => {
 
 defineTestCase("child remove in unmounted state", async() => {
 	const childData = box(["a", "aa", "aaa"])
-	const parent = containerTag(childData, x => x.length, x => tag([x]))
+	const parent = tag([childData.mapArray(x => x.length, x => tag([x]))])
 	const parentParent = tag([parent])
 	await sleep(250)
 	document.body.appendChild(parentParent)
@@ -715,7 +716,7 @@ defineTestCase("cssVariableBox: shorthand", () => {
 
 defineTestCase("container items sorting", async() => {
 	const b = box([1, 2, 3])
-	const c = containerTag(b, x => x, x => tag([x]))
+	const c = tag([b.mapArray(x => x, x => tag([x]))])
 	await sleep(100)
 	document.body.appendChild(c)
 	assertEquals(c.textContent, "123")
@@ -824,7 +825,7 @@ defineTestCase("array item update", async() => {
 	const context = a.getArrayContext((_, i) => i)
 	const b = context.getBoxForKey(1)
 
-	const el = containerTag(a, (_, i) => i, text => tag([text]))
+	const el = tag([a.mapArray((_, i) => i, text => tag([text]))])
 	await sleep(100)
 	document.body.appendChild(el)
 
@@ -837,7 +838,7 @@ defineTestCase("array item update", async() => {
 defineTestCase("array item insert", async() => {
 	const a = box([1, 2])
 
-	const el = containerTag(a, x => x, text => tag([text]))
+	const el = tag([a.mapArray(x => x, text => tag([text]))])
 	await sleep(100)
 	document.body.appendChild(el)
 
@@ -852,7 +853,7 @@ defineTestCase("array item insert", async() => {
 defineTestCase("array item delete", async() => {
 	const a = box([1, 2, 3, 4, 5])
 
-	const el = containerTag(a, x => x, text => tag([text]))
+	const el = tag([a.mapArray(x => x, text => tag([text]))])
 	await sleep(100)
 	document.body.appendChild(el)
 
@@ -897,15 +898,4 @@ defineTestCase("can replaceWith string", () => {
 	document.body.append(container)
 	node.replaceWith("owo")
 	container.remove()
-})
-
-defineTestCase("each overload of containerTag works", () => {
-	assertEquals(containerTag(box([1, 2, 3]), x => x, x => tag([x])).textContent, "123")
-	assertEquals(containerTag(calcBox([], () => [2, 3, 4]), x => x, x => tag([x])).textContent, "234")
-	assertEquals(containerTag({class: "owo"}, box([3, 4, 5]), x => x, x => tag([x])).textContent, "345")
-	assertEquals(containerTag({class: "owo"}, calcBox([], () => [4, 5, 6]), x => x, x => tag([x])).textContent, "456")
-	assertEquals(containerTag(box([5, 6, 7]), x => x.join(",")).textContent, "5,6,7")
-	assertEquals(containerTag([box(6), 7, box("x")], (a, b, c) => `${a},${b},${c.length}`).textContent, "6,7,1")
-	assertEquals(containerTag({class: "owo"}, box([8, 9, 0]), x => x.join(",")).textContent, "8,9,0")
-	assertEquals(containerTag({class: "owo"}, [box(9), 0, box("x")], (a, b, c) => `${a},${b},${c.length}`).textContent, "9,0,1")
 })

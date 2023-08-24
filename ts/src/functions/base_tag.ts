@@ -1,6 +1,6 @@
-import {BoxChangeHandler, MRBox, RBox, Unboxed, constBoxWrap, isConstBox, isRBox, unbox} from "@nartallax/cardboard"
+import {BoxChangeHandler, MRBox, Unboxed, constBoxWrap, isConstBox, isRBox, unbox} from "@nartallax/cardboard"
 import {ClassNameParts, makeClassname} from "src/functions/classname"
-import {bindBox, getBinder} from "src/node_binding"
+import {getBinder} from "src/node_binding"
 import {Binder} from "src/parts/binder"
 
 type NoLeadingOn<T extends `on${string}`> = T extends `on${infer X}` ? Uncapitalize<X> : never
@@ -40,7 +40,9 @@ export interface TagDescription<K extends string = string, ThisType = unknown> e
 
 export type Maybe<E> = E | null | undefined
 export type MaybeArray<E> = E | readonly E[]
-export type ChildArray<E = unknown> = readonly Maybe<E>[]
+type NonBoxedSingleChildArrayElement<E> = Maybe<E | string | number | boolean>
+// TODO: test cases: array of elements, array of mixed values, single box children, array of boxes of arrays, array of boxes of mixed, array of boxes of single values, array of string that changes to element that changes to string
+export type ChildArray<E> = readonly MRBox<MaybeArray<NonBoxedSingleChildArrayElement<E>>>[]
 
 export function resolveTagCreationArgs<K, E>(a?: K | ChildArray<E>, b?: ChildArray<E>): [K, ChildArray<E> | undefined] {
 	if(!a){
@@ -52,43 +54,7 @@ export function resolveTagCreationArgs<K, E>(a?: K | ChildArray<E>, b?: ChildArr
 	}
 }
 
-export function makeContainerTagFn<C, D, R extends Node>(renderByDescription: (desc?: D) => R, renderChild?: (el: Exclude<C, Node | null | undefined>) => Node | null): (a: any, b: any, c?: any, d?: any) => R {
-	return (a, b, c, d) => {
-		const argumentCount = d !== undefined ? 4 : c !== undefined ? 3 : 2
-		const isArrayContainer = argumentCount === 4 || (argumentCount === 3 && isRBox(a))
-		let result: R
-		if(isArrayContainer){
-			const description: D = d ? a : undefined
-			const childItems: RBox<readonly unknown[]> = d ? b : a
-			const getKey: (item: unknown, index: number) => unknown = d ? c : b
-			const renderChild: (item: unknown) => R = d ? d : c
-			result = renderByDescription(description)
-			bindChildArrayToTag(result, childItems, getKey, renderChild)
-		} else {
-			const description: D = c ? a : undefined
-			const boxesOrBox: MaybeArray<MRBox<unknown>> = c ? b : a
-			const render: (...args: unknown[]) => MaybeArray<unknown> = c ? c : b
-			const boxes = Array.isArray(boxesOrBox) ? boxesOrBox : [boxesOrBox]
-
-			result = renderByDescription(description)
-
-			const reRenderChildren = () => {
-				const args = boxes.map(box => unbox(box))
-				const newChildOrSeveral = render(...args)
-				const newChildren = Array.isArray(newChildOrSeveral) ? newChildOrSeveral : [newChildOrSeveral]
-				updateChildren(result, renderChildren(newChildren, renderChild))
-			}
-
-			for(let i = 0; i < boxes.length; i++){
-				bindBox(result, boxes[i], reRenderChildren, {dontCallImmediately: true})
-			}
-			reRenderChildren()
-		}
-		return result
-	}
-}
-
-export function populateTag<K extends string, T, E>(tagBase: Element, description: TagDescription<K, T>, children: ChildArray<E> | undefined, renderChild?: (el: Exclude<E, Node | null | undefined>) => Node | null): Binder | null {
+export function populateTag<K extends string, T, E extends Element>(tagBase: Element, description: TagDescription<K, T>, children: ChildArray<E> | undefined): Binder | null {
 	let binder: Binder | null = null
 
 	if("class" in description){
@@ -111,7 +77,7 @@ export function populateTag<K extends string, T, E>(tagBase: Element, descriptio
 
 	for(const k in description){
 		if(k.startsWith("on")){
-			// I don't want to construct elaborat solid type here
+			// I don't want to construct elaborate solid type here
 			// I know the type will be correct, because it is enforced by function parameter type
 			// so just be Any and that's it
 			// eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -130,30 +96,67 @@ export function populateTag<K extends string, T, E>(tagBase: Element, descriptio
 	}
 
 	if(children){
-		tagBase.replaceChildren(...renderChildren(children, renderChild))
+		const updateFn = () => updateChildren<E>(tagBase, children)
+
+		for(const child of children){
+			if(isRBox(child)){
+				(binder ||= getBinder(tagBase)).watch(child, updateFn, true)
+			}
+		}
+		updateFn()
 	}
 
 	return binder
 }
 
-export function renderChildren<E>(children: readonly Maybe<E>[], renderChild?: (el: Exclude<E, Node | null | undefined>) => Node | null): Node[] {
-	const childTags: Node[] = []
-	for(const child of children){
-		if(child === null || child === undefined || child === true || child === false){
-			continue
-		}
-		if(child instanceof Node){
-			childTags.push(child)
-			continue
-		}
-		if(renderChild){
-			const rendered = renderChild(child as Exclude<E, Node | null | undefined>)
-			if(rendered !== null){
-				childTags.push(rendered)
+// why is this not in default typings...?
+function isArray<T>(a: MaybeArray<T>): a is readonly T[] {
+	return Array.isArray(a)
+}
+
+function updateChildren<E extends Element>(parent: Node, children: ChildArray<E>): void {
+	let index = 0
+	for(const wrappedChild of children){
+		const child = unbox(wrappedChild)
+		if(isArray(child)){
+			for(let i = 0; i < child.length; i++){
+				index = updateChildAt(parent, child[i]!, index)
 			}
+		} else {
+			index = updateChildAt(parent, child, index)
 		}
 	}
-	return childTags
+
+	while(parent.childNodes.length > index){
+		// why last child instead of `index`-th?
+		// I have a feeling that it's more performant, to pop the last one
+		// no confirmation though
+		parent.removeChild(parent.childNodes[parent.childNodes.length - 1]!)
+	}
+}
+
+function updateChildAt<E extends Element>(parent: Node, child: NonBoxedSingleChildArrayElement<E>, index: number): number {
+	if(child === null || child === undefined || child === true || child === false){
+		return index
+	}
+
+	let childNode: Node
+	if(child instanceof Node){
+		childNode = child
+	} else {
+		childNode = document.createTextNode(child + "")
+	}
+
+	// why do I have to cast this...? TS is weird here
+	if(parent.childNodes[index] as Node | undefined === childNode){
+		return index + 1
+	}
+	if(parent.childNodes.length <= index){
+		parent.appendChild(childNode)
+	} else {
+		parent.insertBefore(childNode, parent.childNodes[index]!)
+	}
+	return index + 1
 }
 
 function setAttribute(tagBase: Element, attrName: string, value: Attributes[string]): void {
@@ -240,96 +243,22 @@ export function onMount(el: Element, handler: (() => void) | (() => () => void),
 	binder.onInserted(onInserted, options?.beforeInserted)
 }
 
-function updateChildren(parent: Node, newChildren: readonly Node[]): void {
-	for(let i = 0; i < newChildren.length; i++){
-		const childTag = newChildren[i]!
-		const x = parent.childNodes[i]
-		if(x === childTag){
-			continue
-		}
-		if(x){
-			parent.insertBefore(childTag, x)
-		} else {
-			parent.appendChild(childTag)
-		}
-	}
+// TODO: remove?
+// function updateChildren(parent: Node, newChildren: readonly Node[]): void {
+// 	for(let i = 0; i < newChildren.length; i++){
+// 		const childTag = newChildren[i]!
+// 		const x = parent.childNodes[i]
+// 		if(x === childTag){
+// 			continue
+// 		}
+// 		if(x){
+// 			parent.insertBefore(childTag, x)
+// 		} else {
+// 			parent.appendChild(childTag)
+// 		}
+// 	}
 
-	while(parent.childNodes[newChildren.length]){
-		parent.childNodes[newChildren.length]!.remove()
-	}
-}
-
-export function bindChildArrayToTag<T, K>(parent: Node, childItems: RBox<readonly T[]>, getKey: (item: T, index: number) => K, renderChild: (item: RBox<T>) => Node): void {
-	const arrayContext = childItems.getArrayContext(getKey)
-	const keyToChildMap = new Map<unknown, Node>()
-
-	watchAndRun(null, parent, childItems, (childItems, _, meta) => {
-		if(meta){
-			switch(meta.type){
-				case "array_item_update": {
-					// fully processed by array context, no action required
-					return
-				}
-
-				case "array_items_insert": {
-					const nextChild = parent.childNodes[meta.index]
-					for(let offset = 0; offset < meta.count; offset++){
-						const index = meta.index + offset
-						const key = getKey(childItems[index]!, index)
-						const child = renderChild(arrayContext.getBoxForKey(key))
-						keyToChildMap.set(key, child)
-						if(nextChild){
-							parent.insertBefore(child, nextChild)
-						} else {
-							parent.appendChild(child)
-						}
-					}
-					return
-				}
-
-				case "array_items_delete": {
-					for(const {index, value} of meta.indexValuePairs){
-						const key = getKey(value as T, index)
-						const child = keyToChildMap.get(key)
-						if(!child){
-							throw new Error("Tried to delete child at key " + key + ", but there's no item for that key.")
-						}
-						parent.removeChild(child)
-						keyToChildMap.delete(key)
-					}
-					return
-				}
-
-				case "array_items_delete_all": {
-					while(parent.firstChild){
-						parent.removeChild(parent.firstChild)
-					}
-					keyToChildMap.clear()
-					return
-				}
-
-			}
-		}
-
-		const newChildArray: Node[] = new Array(childItems.length)
-		const outdatedKeys = new Set(keyToChildMap.keys())
-		for(let i = 0; i < childItems.length; i++){
-			const childItem = childItems[i]!
-			const key = getKey(childItem, i)
-			let child = keyToChildMap.get(key)
-			if(!child){
-				const box = arrayContext.getBoxForKey(key)
-				child = renderChild(box)
-				keyToChildMap.set(key, child)
-			}
-			newChildArray[i] = child
-			outdatedKeys.delete(key)
-		}
-
-		for(const outdatedKey of outdatedKeys){
-			keyToChildMap.delete(outdatedKey)
-		}
-
-		updateChildren(parent, newChildArray)
-	})
-}
+// 	while(parent.childNodes[newChildren.length]){
+// 		parent.childNodes[newChildren.length]!.remove()
+// 	}
+// }

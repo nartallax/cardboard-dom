@@ -58,6 +58,6 @@
     }
   },
   "peerDependencies": {
-    "@nartallax/cardboard": "^2.1.1"
+    "@nartallax/cardboard": "^2.1.4"
   }
 }
