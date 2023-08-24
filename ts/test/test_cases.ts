@@ -885,3 +885,16 @@ defineTestCase("unbind box with handler", () => {
 	b.set("ayaya")
 	assertEquals(lastKnownValue, "owo")
 })
+
+defineTestCase("can replaceChildren string into non-attached node", () => {
+	const node = tag()
+	node.replaceChildren("owo")
+})
+
+defineTestCase("can replaceWith string", () => {
+	const node = tag()
+	const container = tag([node])
+	document.body.append(container)
+	node.replaceWith("owo")
+	container.remove()
+})

@@ -9,7 +9,8 @@
  * (also weird stuff could happen in replace-methods and such)
  *
  * Will call handlers only for top-level inserted/removed nodes (i.e. won't iterate their children to call handlers)
- * Won't call beforeInsert in case of nodes created on-fly when HTML text is changed (by innerHTML, outerHTML, setHTML()) */
+ * Won't call beforeInsert in case of nodes created on-fly when HTML text is changed
+ * (by innerHTML, outerHTML, setHTML(), and other methods that accept strings in place of nodes) */
 export function monkeyPatchDomForInsertRemove(beforeInsert: (node: Node, parent: Node) => void, afterRemoveOrInsert: (node: Node) => void): void {
 
 	knownPatchedFunctions = new Set()
@@ -79,7 +80,10 @@ export function monkeyPatchDomForInsertRemove(beforeInsert: (node: Node, parent:
 			afterRemoveOrInsert(oldChildren[i]!)
 		}
 		for(let i = 0; i < args.length; i++){
-			afterRemoveOrInsert(args[i]!)
+			const arg = args[i]!
+			if(arg instanceof Node){
+				afterRemoveOrInsert(arg)
+			}
 		}
 		return result
 	})
@@ -91,7 +95,10 @@ export function monkeyPatchDomForInsertRemove(beforeInsert: (node: Node, parent:
 		const result = original.apply(this, args)
 		afterRemoveOrInsert(this)
 		for(let i = 0; i < args.length; i++){
-			afterRemoveOrInsert(args[i])
+			const arg = args[i]!
+			if(arg instanceof Node){
+				afterRemoveOrInsert(arg)
+			}
 		}
 		return result
 	})
