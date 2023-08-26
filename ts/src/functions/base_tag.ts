@@ -1,4 +1,4 @@
-import {BoxChangeHandler, MRBox, Unboxed, constBoxWrap, isConstBox, isRBox, unbox} from "@nartallax/cardboard"
+import {BoxChangeHandler, BoxUpdateMeta, MRBox, RBox, Unboxed, constBoxWrap, isConstBox, isRBox, unbox} from "@nartallax/cardboard"
 import {ClassNameParts, makeClassname} from "src/functions/classname"
 import {Maybe, MaybeArray, isArray} from "src/functions/utils"
 import {getBinder} from "src/node_binding"
@@ -94,20 +94,55 @@ export function populateTag<K extends string, T, E extends Element>(tagBase: Ele
 	}
 
 	if(children){
-		const updateFn = () => updateChildren<E>(tagBase, children)
+		const updateFn = (_: any, box: RBox<MaybeArray<NonBoxedSingleChildArrayElement<E>>> | undefined, meta: BoxUpdateMeta | undefined) => updateChildren<E>(tagBase, children, box, meta)
 
 		for(const child of children){
 			if(isRBox(child)){
 				(binder ||= getBinder(tagBase)).watch(child, updateFn, true)
 			}
 		}
-		updateFn()
+		updateFn(null, undefined, undefined)
 	}
 
 	return binder
 }
 
-function updateChildren<E extends Element>(parent: Node, children: ChildArray<E>): void {
+// function findChildStartIndex<E>(children: ChildArray<E>, updatedBox: RBox<MaybeArray<NonBoxedSingleChildArrayElement<E>>>): number {
+// 	let index = 0
+// 	for(let i = 0; i < children.length; i++){
+// 		const childBox = children[i]!
+// 		if(childBox === updatedBox){
+// 			return index
+// 		}
+// 		const child = unbox(children[i]!)
+// 		if(isArray(child)){
+// 			index += child.length
+// 		} else if(!isEmptyChild(child)){
+// 			index++
+// 		}
+// 	}
+
+// 	throw new Error("The child box is not element of child array")
+// }
+
+function updateChildren<E extends Element>(parent: Node, children: ChildArray<E>, updatedBox: RBox<MaybeArray<NonBoxedSingleChildArrayElement<E>>> | undefined, meta: BoxUpdateMeta | undefined): void {
+	if(updatedBox){
+		switch(meta?.type){
+			// we could go on, but other optimizations are quite complex (and more rare)
+			// that is, if there will be good cases - I'll add them, but now it's not worth it
+			case "array_item_update":{
+				const oldValue = meta.oldValue
+				const newValue = (updatedBox.get() as NonBoxedSingleChildArrayElement<E>[])[meta.index]!
+				// Element and not Node here because text nodes should still be updated by parent element
+				if(oldValue instanceof Element && newValue instanceof Element){
+					return // it's fully handled alredy
+				}
+				break
+			}
+		}
+	}
+
+
 	let index = 0
 	for(const wrappedChild of children){
 		const child = unbox(wrappedChild)
@@ -121,15 +156,19 @@ function updateChildren<E extends Element>(parent: Node, children: ChildArray<E>
 	}
 
 	while(parent.childNodes.length > index){
-		// why last child instead of `index`-th?
-		// I have a feeling that it's more performant, to pop the last one
+		// Q: why last child instead of `index`-th?
+		// A: I have a feeling that it's more performant, to pop the last one
 		// no confirmation though
 		parent.removeChild(parent.childNodes[parent.childNodes.length - 1]!)
 	}
 }
 
+function isEmptyChild<E>(child: NonBoxedSingleChildArrayElement<E>): boolean {
+	return child === null || child === undefined || child === true || child === false
+}
+
 function updateChildAt<E extends Element>(parent: Node, child: NonBoxedSingleChildArrayElement<E>, index: number): number {
-	if(child === null || child === undefined || child === true || child === false){
+	if(isEmptyChild(child)){
 		return index
 	}
 
