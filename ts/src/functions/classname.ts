@@ -5,8 +5,8 @@ import {getBinder} from "src/node_binding"
 type ClassNamePart = MRBox<string | null | undefined> | Record<string, MRBox<boolean | undefined>>
 export type ClassNameParts = ClassNamePart | ClassNamePart[]
 
-/** Utility function that assembles classname from parts */
-export function makeClassname(binder: Binder | null, node: Node, parts: ClassNameParts, callback: (className: string) => void): Binder | null {
+/** Assemble classname from parts, subscribing to all the boxes, and call the callback */
+export function bindClassname(binder: Binder | null, node: Node, parts: ClassNameParts, callback: (className: string) => void): Binder | null {
 	const arr = Array.isArray(parts) ? parts : [parts]
 	for(const item of arr){
 		if(isRBox(item)){
@@ -40,8 +40,6 @@ export function makeClassname(binder: Binder | null, node: Node, parts: ClassNam
 		}
 		callback(result.join(" "))
 	}
-
-	makeClassnameAndCallTheCallback()
 
 	return binder
 }

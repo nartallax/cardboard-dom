@@ -17,7 +17,11 @@ First function you need to know of is `tag`.
 `tag` creates an HTML element with parameters you provide:
 
 ```typescript
-import {tag} from "@nartallax/cardboard-dom"
+import {tag, initializeCardboardDom} from "@nartallax/cardboard-dom"
+
+// this function MUST be called before any DOM manipulation
+// (in later examples this call is omitted)
+await initializeCardboardDom()
 
 const root = tag({class: "root-container"}, [
 	tag({tag: "h1"}, ["Hello world!"]),

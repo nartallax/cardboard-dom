@@ -3,9 +3,11 @@ import {tag} from "src/functions/html_tag"
 import {waitDocumentLoaded} from "src/functions/wait_document_loaded"
 import css from "./test.module.scss"
 import {testCases} from "test/test_cases"
+import {initializeCardboardDom} from "src/node_binding"
 
 export async function main() {
 	await waitDocumentLoaded()
+	await initializeCardboardDom()
 	renderAll()
 }
 
@@ -42,19 +44,21 @@ function renderAll() {
 }
 
 function renderTester(tester: () => void | Promise<void>, resultBox: WBox<boolean | Error>, onCompletion: () => void): HTMLElement {
-	(async() => {
-		try {
-			await Promise.resolve(tester())
-			resultBox.set(true)
-		} catch(e){
-			if(!(e instanceof Error)){
-				throw e
+	requestAnimationFrame(() => {
+		(async() => {
+			try {
+				await Promise.resolve(tester())
+				resultBox.set(true)
+			} catch(e){
+				if(!(e instanceof Error)){
+					throw e
+				}
+				console.error(e)
+				resultBox.set(e)
 			}
-			console.error(e)
-			resultBox.set(e)
-		}
-		onCompletion()
-	})()
+			onCompletion()
+		})()
+	})
 
 	const el = tag({
 		class: [css.testEntryResult, {

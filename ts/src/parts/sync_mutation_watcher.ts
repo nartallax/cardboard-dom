@@ -9,6 +9,10 @@ export class SyncMutationWatcher {
 
 	constructor(readonly binders: WeakMap<Node, Binder>) {}
 
+	isInitialized(): boolean {
+		return this.isInit
+	}
+
 	init(): void {
 		if(!this.isInit){
 			this.isInit = true

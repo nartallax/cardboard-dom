@@ -1,5 +1,5 @@
 import {BoxChangeHandler, BoxUpdateMeta, MRBox, RBox, Unboxed, constBoxWrap, isConstBox, isRBox, unbox} from "@nartallax/cardboard"
-import {ClassNameParts, makeClassname} from "src/functions/classname"
+import {ClassNameParts, bindClassname} from "src/functions/classname"
 import {Maybe, MaybeArray, isArray} from "src/functions/utils"
 import {getBinder} from "src/node_binding"
 import {Binder} from "src/parts/binder"
@@ -56,7 +56,7 @@ export function populateTag<K extends string, T, E extends Element>(tagBase: Ele
 	let binder: Binder | null = null
 
 	if("class" in description){
-		binder = makeClassname(
+		binder = bindClassname(
 			binder,
 			tagBase,
 			description.class,

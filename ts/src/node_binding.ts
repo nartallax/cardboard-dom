@@ -15,9 +15,34 @@ const syncWatcher = new SyncMutationWatcher(binders)
  * if there are none, it's safe to turn off to reclaim some performance. */
 export const shutdownDebugObserver = () => asyncWatcher.shutdown()
 
-export const getBinder = (node: Node): Binder => {
+/** Initialize DOM bindings.
+ *
+ * This function must be called before any DOM manipulations, otherwise things can go wrong.
+ * It won't do harm to call it more than once, if you're uncertain if you did that already or not. */
+export const initializeCardboardDom = async(): Promise<void> => {
+	// this function is async for futureproofing
 	asyncWatcher.init()
 	syncWatcher.init()
+	/* Explaination about this function:
+	v8 (and maybe other engines, untested), when calling a method, will resolve implementation first, and then arguments
+	this is fine 99.9% of the time, but that will lead to unexpected results if the argument is a call and it changes the method
+	In other words,
+
+		let button = patchAppendAndMakeButton()
+		document.body.append(button)
+
+	will call patched method, but
+
+		document.body.append(patchAppendAndMakeButton())
+
+	will call original one.
+	To avoid this weird effect, this init function exists. */
+}
+
+export const getBinder = (node: Node): Binder => {
+	if(!syncWatcher.isInitialized()){
+		throw new Error("Cardboard DOM is not initialized! You need to call initializeCardboardDom() first.")
+	}
 	let binder = binders.get(node)
 	if(!binder){
 		binder = new Binder(node)

@@ -1,6 +1,6 @@
 {
   "name": "@nartallax/cardboard-dom",
-  "version": "2.0.6",
+  "version": "2.0.7",
   "description": "DOM utils for Cardboard",
   "main": "cardboard-dom.js",
   "types": "cardboard-dom.d.ts",
@@ -58,6 +58,6 @@
     }
   },
   "peerDependencies": {
-    "@nartallax/cardboard": "^2.1.6"
+    "@nartallax/cardboard": "^2.1.10"
   }
 }

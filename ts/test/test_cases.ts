@@ -956,3 +956,12 @@ defineTestCase("multiple box binding", async() => {
 
 	el.remove()
 })
+
+defineTestCase("don't pass props and expect an object to show up", () => {
+	const Ctrl = defineControl((props: {name?: string}) => {
+		return tag([props.name ?? "uwu"])
+	})
+
+	const c = Ctrl()
+	assertEquals(c.textContent, "uwu")
+})

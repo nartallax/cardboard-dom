@@ -40,7 +40,10 @@ const defineControlBase = <C, R, F extends (props: any, children: C) => R>(rende
 
 	const controlWrap = (propsOrChildren?: any, mbChildren?: any): R => {
 		const firstArgIsChildren = Array.isArray(propsOrChildren)
-		const props = (firstArgIsChildren ? expectsProps ? {} : null : propsOrChildren)
+		let props = (firstArgIsChildren ? null : propsOrChildren)
+		if(expectsProps){
+			props = props ?? {}
+		}
 		const children = firstArgIsChildren ? propsOrChildren as HTMLChildArray : mbChildren
 
 		return renderer(props, expectsChildren ? (children ?? []) : children)
