@@ -965,3 +965,17 @@ defineTestCase("don't pass props and expect an object to show up", () => {
 	const c = Ctrl()
 	assertEquals(c.textContent, "uwu")
 })
+
+defineTestCase("recursive classname array", async() => {
+	const b = box("owo")
+	const el = tag({class: ["uwu", [[[[[b]]]]]]})
+
+	await sleep(100)
+	document.body.append(el)
+	assertEquals(el.className, "uwu owo")
+
+	b.set("ayaya")
+	assertEquals(el.className, "uwu ayaya")
+
+	el.remove()
+})

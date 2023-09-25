@@ -1,5 +1,5 @@
 import {BoxChangeHandler, BoxUpdateMeta, MRBox, RBox, Unboxed, constBoxWrap, isConstBox, isRBox, unbox} from "@nartallax/cardboard"
-import {ClassNameParts, bindClassname} from "src/functions/classname"
+import {ClassName, bindClassname} from "src/functions/classname"
 import {Maybe, MaybeArray, isArray} from "src/functions/utils"
 import {getBinder} from "src/node_binding"
 import {Binder} from "src/parts/binder"
@@ -35,7 +35,7 @@ type Attributes = {
 
 export interface TagDescription<K extends string = string, ThisType = unknown> extends EventHandlers<ThisType>, CustomEventHandlers<ThisType>{
 	readonly tag?: K
-	readonly class?: ClassNameParts
+	readonly class?: ClassName
 	readonly attrs?: Attributes
 }
 
